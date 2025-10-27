@@ -553,10 +553,19 @@ turbolift create-prs --draft --sleep 2s
 # 8. Check PR status
 turbolift pr-status
 
-# 9. Mark ready (after validation)
+# 9. Wait for CI to complete on draft PRs
+gh search prs 'org:tatari-tv SRE-XXXX is:draft is:open' \
+  --json number,repository,statusCheckRollup \
+  --jq '.[] | "\(.repository.name): \(.statusCheckRollup[0].state)"'
+
+# 10. If CI fails, retrieve logs and fix
+gh run view <RUN_ID> --repo org/repo --log
+# Make fixes in work/org/repo, commit, push, verify CI passes
+
+# 11. Mark ready (after CI passes)
 turbolift foreach -- gh pr ready
 
-# 10. Batch merge with slam
+# 12. Batch merge with slam
 PR_TITLE=$(head -n 1 README.md | sed 's/^# //')
 slam review approve "$PR_TITLE"
 ```
@@ -700,6 +709,12 @@ turbolift commit -m "Remove PyPICloud publishing configuration
 - Keep CodeArtifact publishing configuration
 
 Part of SRE-3447"
+turbolift create-prs --draft
+
+# Wait for CI to complete
+gh search prs 'org:tatari-tv SRE-3447 is:draft' \
+  --json repository,statusCheckRollup \
+  --jq '.[] | "\(.repository.name): \(.statusCheckRollup[0].state)"'
 
 # After validation
 turbolift foreach -- gh pr ready
@@ -733,6 +748,11 @@ turbolift create-prs --draft --sleep 2s
 
 # Status check
 turbolift pr-status
+
+# Wait for CI to complete on all PRs
+gh search prs 'org:tatari-tv SRE-3449 is:draft' \
+  --json repository,statusCheckRollup \
+  --jq '.[] | "\(.repository.name): \(.statusCheckRollup[0].state)"'
 
 # After validation
 turbolift foreach -- gh pr ready

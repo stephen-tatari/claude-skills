@@ -338,6 +338,67 @@ If any issues found:
 3. Reset repos: `turbolift foreach -- git reset --hard HEAD~1`
 4. Re-run from step 2
 
+#### Automated CI Monitoring
+
+**Wait for CI to complete** before marking PRs ready:
+
+```bash
+# Check CI status for all PRs in campaign
+turbolift pr-status
+
+# Use gh to check detailed status for each PR
+gh search prs 'org:tatari-tv SRE-XXXX is:draft is:open' \
+  --json number,title,repository,statusCheckRollup \
+  --jq '.[] | "\(.repository.name): \(.statusCheckRollup[0].state)"'
+```
+
+**Monitor CI progress:**
+
+```bash
+# Watch a specific PR's CI runs
+gh pr checks <PR_NUMBER> --repo org/repo --watch
+
+# Check recent workflow runs across repos
+for repo in $(cat repos.txt); do
+  echo "=== $repo ==="
+  gh run list --repo $repo --limit 1 \
+    --json status,conclusion,workflowName,createdAt
+done
+```
+
+**If CI fails, retrieve logs:**
+
+```bash
+# Find the failed run ID
+gh run list --repo org/repo --limit 5
+
+# View the logs for failed run
+gh run view <RUN_ID> --repo org/repo --log
+
+# Download logs to file for analysis
+gh run view <RUN_ID> --repo org/repo --log > ci-failure.log
+```
+
+**Fix failures and update PRs:**
+
+```bash
+# Navigate to the repo with failures
+cd work/org/repo
+
+# Make fixes
+# ... edit files ...
+
+# Commit and push updates
+git add -A
+git commit -m "Fix: address CI failure"
+git push
+
+# Verify CI passes
+gh pr checks --watch
+```
+
+**Only proceed when all CI checks pass** across all draft PRs.
+
 ### Phase 2: Small Batch (5-10 repos)
 
 After test campaign succeeds, add more repos to the existing campaign:
