@@ -1,0 +1,17 @@
+repos:
+  - repo: local
+    hooks:
+      - id: validate-skills
+        name: Validate skill definitions
+        entry: python scripts/validate_skills.py
+        language: python
+        pass_filenames: false
+        additional_dependencies:
+          - pyyaml
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.42.0
+    hooks:
+      - id: markdownlint
+        args:
+          - --config
+          - .markdownlint.json
