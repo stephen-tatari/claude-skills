@@ -125,6 +125,15 @@ gh auth login
 gh auth status
 ```
 
+## Documentation Structure
+
+This skill includes:
+- **SKILL.md** (this file): Complete workflow guide and best practices
+- **REFERENCE.md**: Detailed command reference with real examples
+- **FUTURE_ENHANCEMENTS.md**: Optional templates and scripts to add
+
+Refer to **REFERENCE.md** for detailed command syntax and real-world usage examples.
+
 ## Complete Workflow
 
 ### Phase 0: Planning & Preparation
@@ -606,90 +615,44 @@ When campaigns involve releasing packages:
 
 ## Command Reference
 
+Quick reference for common commands. See **REFERENCE.md** for detailed examples and real campaign usage.
+
 ### turbolift Commands
 
 ```bash
-# Initialize campaign
-turbolift init --name "campaign-name"
-
-# Clone all repos from repos.txt
-turbolift clone
-
-# Run command in each repo
-turbolift foreach -- <command>
-turbolift foreach -- 'multi && command && chain'
-
-# Commit changes across all repos
-turbolift commit -m "commit message"
-# Or manual commit:
-turbolift foreach -- git add -A
-turbolift foreach -- 'git commit -m "message"'
-
-# Create PRs
-turbolift create-prs --draft                    # Create draft PRs
-turbolift create-prs --draft --sleep 2s         # With rate limiting
-turbolift create-prs                            # Create ready PRs
-
-# Check PR status
-turbolift pr-status
-
-# Update existing PRs (after pushing new commits)
-turbolift update-prs
+turbolift init --name "campaign-name"           # Initialize campaign
+turbolift clone                                  # Clone all repos from repos.txt
+turbolift foreach -- <command>                   # Run command in each repo
+turbolift commit -m "message"                    # Commit changes across all repos
+turbolift create-prs --draft                     # Create draft PRs
+turbolift create-prs --draft --sleep 2s          # Create PRs with rate limiting
+turbolift pr-status                              # Check PR status
+turbolift update-prs                             # Update existing PRs after new commits
 ```
 
 ### slam Commands
 
 ```bash
-# List PRs by change ID pattern
-slam review ls 'SRE-XXXX'
-slam review ls 'pattern'
-
-# Clone all repos with PRs for a change ID
-slam review clone 'SRE-XXXX'
-
-# Approve and merge all PRs matching pattern
-slam review approve "SRE-XXXX: Description"
-
-# Delete all PRs matching pattern (close and delete branches)
-slam review delete "pattern"
-
-# Purge all SLAM branches (nuclear option)
-slam review purge
-
-# Specify different org
-slam review ls 'pattern' --org other-org
-
-# Filter by repo patterns
-slam review ls 'pattern' --repo-ptns 'repo-pattern'
+slam review ls 'SRE-XXXX'                        # List PRs by change ID pattern
+slam review clone 'SRE-XXXX'                     # Clone all repos with matching PRs
+slam review approve "SRE-XXXX: Description"      # Approve and merge all matching PRs
+slam review delete "pattern"                     # Close PRs and delete branches
+slam review purge                                # Purge all SLAM branches (use with caution)
 ```
 
 ### gh CLI Commands
 
 ```bash
-# Search for PRs across org
-gh search prs 'org:tatari-tv SRE-XXXX is:draft is:open' --json number,title,repository
-
-# Mark PR ready for review
-gh pr ready                                      # In repo directory
-gh pr ready <PR_NUMBER> --repo org/repo         # Specify repo
-
-# List PRs in repo
-gh pr list --repo org/repo --search "SRE-XXXX" --state all
-
-# Check workflow runs
-gh run list --repo org/repo --branch main --limit 5
-gh run list --repo org/repo --workflow publish-release.yaml
-
-# Watch workflow in real-time
-gh run watch --repo org/repo
-
-# Manage releases
-gh release list --repo org/repo --limit 5
-gh release create v1.0.0 --repo org/repo
-
-# Check tags
-gh api repos/org/repo/tags --jq '.[0:5] | .[] | .name'
+gh search prs 'org:name SRE-XXXX is:open'       # Search for PRs across org
+gh pr ready                                      # Mark PR ready for review
+gh pr list --repo org/repo                       # List PRs in repo
+gh pr merge <PR_NUM> --repo org/repo --squash   # Merge PR with squash
+gh run list --repo org/repo --branch main        # Check workflow runs
+gh run watch --repo org/repo                     # Watch workflow in real-time
+gh release list --repo org/repo                  # List releases
 ```
+
+**For detailed command usage, options, and real examples, see [REFERENCE.md](REFERENCE.md)**
 
 ## Troubleshooting
 
