@@ -6,7 +6,7 @@ This repository contains a collection of reusable Skills for AI coding agents, s
 
 Each subdirectory in this repository represents a single Skill:
 
-```
+```text
 claude-skills/
 ├── skill-name-1/
 │   ├── SKILL.md          # Required: Skill definition and instructions
@@ -35,6 +35,7 @@ cd your-skill-name
 ```
 
 **Naming conventions:**
+
 - Use lowercase letters, numbers, and hyphens only
 - Maximum 64 characters
 - Be descriptive but concise
@@ -66,6 +67,7 @@ files with relative paths.
 ```
 
 **Critical Requirements:**
+
 - `name`: Must match directory name, lowercase with hyphens only
 - `description`: This is crucial - agents use it to decide when to invoke the Skill
 - Use valid YAML syntax (no tabs, proper indentation)
@@ -75,7 +77,7 @@ files with relative paths.
 
 Organize additional resources alongside SKILL.md:
 
-```
+```text
 your-skill-name/
 ├── SKILL.md
 ├── reference.md           # Reference documentation
@@ -100,6 +102,7 @@ allowed-tools: Read, Grep, Glob
 ```
 
 Common tool sets:
+
 - Read-only: `Read, Grep, Glob, Bash`
 - File operations: `Read, Write, Edit`
 - Full access: Omit `allowed-tools` field
@@ -119,12 +122,14 @@ The description field is the most important part of your Skill. It determines wh
 ### Keep Skills Focused
 
 Each Skill should do one thing well:
+
 - ✅ Good: "Format Python code with black and check with ruff"
 - ❌ Too broad: "Handle all Python development tasks"
 
 ### Test Your Skills
 
 Test by asking questions that match your description:
+
 - Verify the agent invokes the Skill at appropriate times
 - Ensure the instructions are clear and actionable
 - Check that supporting files are properly referenced
@@ -132,6 +137,7 @@ Test by asking questions that match your description:
 ### Document Thoroughly
 
 Include in SKILL.md:
+
 - Clear purpose and use cases
 - Step-by-step instructions
 - Examples of expected input/output
@@ -145,11 +151,13 @@ Include in SKILL.md:
 To use these Skills in a specific project:
 
 1. Copy the `.claude/skills/` structure:
+
    ```bash
    mkdir -p .claude/skills
    ```
 
 2. Copy desired Skill directories:
+
    ```bash
    cp -r /path/to/claude-skills/skill-name .claude/skills/
    ```
@@ -167,6 +175,7 @@ cp -r skill-name ~/.claude/skills/
 ## Reference
 
 For comprehensive documentation on Skills, see:
+
 - [Claude Code Skills Documentation](https://docs.claude.com/en/docs/claude-code/skills.md)
 - [Sub-agents Documentation](https://docs.claude.com/en/docs/claude-code/sub-agents.md)
 

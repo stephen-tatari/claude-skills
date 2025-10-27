@@ -26,6 +26,7 @@ cd SRE-3447-remove-pypicloud
 ```
 
 **Creates:**
+
 - Campaign directory with name
 - Empty `repos.txt` file
 - `.turbolift` marker file
@@ -43,6 +44,7 @@ turbolift clone
 ```
 
 **Creates:**
+
 - `work/` directory
 - Subdirectories: `work/org-name/repo-name/`
 
@@ -67,6 +69,7 @@ turbolift foreach -- 'MYVAR=value python3 ../script.py'
 ```
 
 **Real examples from SRE-3447:**
+
 ```bash
 # Apply transformation
 turbolift foreach -- python3 ../remove-pypicloud.py
@@ -107,6 +110,7 @@ turbolift create-prs --draft --pr-body "$(cat ../PR_TEMPLATE.md)"
 ```
 
 **Real example from SRE-3449:**
+
 ```bash
 cd SLAM-SRE-3449-use-read-only-codeartifact-role
 turbolift create-prs --draft --sleep 2s
@@ -184,6 +188,7 @@ slam review ls 'SRE-3447'
 ```
 
 **Output shows:**
+
 - All matching PRs across repos
 - File changes in each repo
 - PR status (open, draft, CI status)
@@ -199,6 +204,7 @@ slam review clone 'SRE-3449'
 ```
 
 **Creates:**
+
 - Local clones in working directory
 - Checks out PR branch in each
 
@@ -213,6 +219,7 @@ slam review approve "SRE-3447: Remove PyPICloud Publishing Configuration"
 ```
 
 **What it does:**
+
 1. Finds all PRs matching pattern
 2. Validates each PR:
    - CI must be passing
@@ -224,7 +231,8 @@ slam review approve "SRE-3447: Remove PyPICloud Publishing Configuration"
 6. Reports success/failure per repo
 
 **Example output:**
-```
+
+```text
 Processing tatari-tv/repo-1 PR #123
   ✅ CI passed
   ✅ Approved
@@ -298,6 +306,7 @@ gh search prs 'org:tatari-tv SRE-XXXX is:open' \
 ```
 
 **Real example from SRE-3447:**
+
 ```bash
 # Find all draft PRs for the campaign
 gh search prs 'org:tatari-tv SRE-3447 is:draft is:open' \
@@ -418,6 +427,7 @@ gh run view <RUN_ID> --repo org/repo --log
 ```
 
 **Real example from SRE-3447:**
+
 ```bash
 # Check if publish-release workflow triggered after tag
 gh run list --repo tatari-tv/python-tatari-api-client \
@@ -461,6 +471,7 @@ git push origin :refs/tags/v1.0.0
 ```
 
 **Real example from SRE-3447 (fix malformed tag):**
+
 ```bash
 # Delete malformed tag
 git tag -d vv1.0-beta.v1.0-beta.v1.0-beta

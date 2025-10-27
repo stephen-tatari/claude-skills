@@ -1,0 +1,18 @@
+repos:
+  - repo: local
+    hooks:
+      - id: validate-skills
+        name: Validate skill definitions
+        entry: python scripts/validate_skills.py
+        language: python
+        pass_filenames: false
+        additional_dependencies:
+          - pyyaml
+  - repo: https://github.com/jackdewinter/pymarkdown
+    rev: v0.9.21
+    hooks:
+      - id: pymarkdown
+        args:
+          - --config=.pymarkdown.json
+          - scan
+          - .

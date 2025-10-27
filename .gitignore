@@ -83,6 +83,7 @@ logs/
 *.temp
 tmp/
 temp/
+TRASH/
 
 # Claude Code specific
 .claude/cache/
