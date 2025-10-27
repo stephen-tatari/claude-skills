@@ -562,7 +562,10 @@ gh search prs 'org:tatari-tv SRE-XXXX is:draft is:open' \
 gh run view <RUN_ID> --repo org/repo --log
 # Make fixes in work/org/repo, commit, push, verify CI passes
 
-# 11. Mark ready (after CI passes)
+# ⚠️ STOP: Wait for all CI to pass before continuing
+# Verify all PRs show green checkmarks before marking ready
+
+# 11. Mark ready (after CI passes and user verification)
 turbolift foreach -- gh pr ready
 
 # 12. Batch merge with slam
@@ -716,6 +719,8 @@ gh search prs 'org:tatari-tv SRE-3447 is:draft' \
   --json repository,statusCheckRollup \
   --jq '.[] | "\(.repository.name): \(.statusCheckRollup[0].state)"'
 
+# ⚠️ Wait for CI to pass before continuing
+
 # After validation
 turbolift foreach -- gh pr ready
 slam review ls 'SRE-3449'
@@ -753,6 +758,8 @@ turbolift pr-status
 gh search prs 'org:tatari-tv SRE-3449 is:draft' \
   --json repository,statusCheckRollup \
   --jq '.[] | "\(.repository.name): \(.statusCheckRollup[0].state)"'
+
+# ⚠️ Wait for CI to pass before continuing
 
 # After validation
 turbolift foreach -- gh pr ready

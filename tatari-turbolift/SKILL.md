@@ -399,6 +399,24 @@ gh pr checks --watch
 
 **Only proceed when all CI checks pass** across all draft PRs.
 
+---
+
+**⚠️ STOP: Verify CI Status Before Continuing**
+
+Before proceeding to the next phase:
+
+1. ✅ **Confirm all CI checks have passed** on all draft PRs
+2. ✅ **Review any CI failures** and verify fixes are working
+3. ✅ **Manually test changes** if applicable
+4. ✅ **Review draft PRs** in GitHub UI one final time
+
+**DO NOT proceed to Phase 2 until:**
+- All draft PRs show green checkmarks (CI passing)
+- You have reviewed and validated the changes
+- You are confident the changes are correct
+
+Once ready, you can proceed to Phase 2 to add more repositories to the campaign.
+
 ### Phase 2: Small Batch (5-10 repos)
 
 After test campaign succeeds, add more repos to the existing campaign:
