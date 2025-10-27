@@ -35,10 +35,12 @@ Use this workflow when you need to:
 - Tracks campaign progress
 
 **Documentation & Download:**
-- GitHub: https://github.com/Skyscanner/turbolift
-- Releases: https://github.com/Skyscanner/turbolift/releases
+
+- GitHub: <https://github.com/Skyscanner/turbolift>
+- Releases: <https://github.com/Skyscanner/turbolift/releases>
 
 **Installation:**
+
 ```bash
 # macOS (Homebrew)
 brew install skyscanner/tap/turbolift
@@ -51,6 +53,7 @@ turbolift --version
 ```
 
 **Configuration:**
+
 Requires GitHub authentication (uses gh CLI under the hood)
 
 ### slam
@@ -64,10 +67,12 @@ Requires GitHub authentication (uses gh CLI under the hood)
 - Cleans up branches automatically
 
 **Documentation & Download:**
-- GitHub: https://github.com/scottidler/slam
-- Releases: https://github.com/scottidler/slam/releases
+
+- GitHub: <https://github.com/scottidler/slam>
+- Releases: <https://github.com/scottidler/slam/releases>
 
 **Installation:**
+
 ```bash
 # Install via Rust cargo
 cargo install --git https://github.com/scottidler/slam
@@ -80,6 +85,7 @@ slam --version
 ```
 
 **Configuration:**
+
 - Requires GitHub authentication (uses gh CLI)
 - Logs written to: `~/.local/share/slam/slam.log`
 - Default organization: `tatari-tv` (configurable with `--org` flag)
@@ -97,26 +103,29 @@ slam --version
 - Validates tags and deployments
 
 **Documentation & Download:**
-- Website: https://cli.github.com/
-- GitHub: https://github.com/cli/cli
-- Docs: https://cli.github.com/manual/
+
+- Website: <https://cli.github.com/>
+- GitHub: <https://github.com/cli/cli>
+- Docs: <https://cli.github.com/manual/>
 
 **Installation:**
+
 ```bash
 # macOS
 brew install gh
 
 # Linux
-# See: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+# See: <https://github.com/cli/cli/blob/trunk/docs/install_linux.md>
 
 # Windows
-# See: https://github.com/cli/cli#windows
+# See: <https://github.com/cli/cli#windows>
 
 # Verify installation
 gh --version
 ```
 
 **Configuration:**
+
 ```bash
 # Authenticate with GitHub
 gh auth login
@@ -128,6 +137,7 @@ gh auth status
 ## Documentation Structure
 
 This skill includes:
+
 - **SKILL.md** (this file): Complete workflow guide and best practices
 - **REFERENCE.md**: Detailed command reference with real examples
 - **FUTURE_ENHANCEMENTS.md**: Optional templates and scripts to add
@@ -148,6 +158,7 @@ cd SRE-XXXX-campaign-name
 ```
 
 Create an `EXECUTION_PLAN.md` documenting:
+
 - **Objective**: What changes will be made and why
 - **Scope**: How many repos, what types
 - **Changes**: Detailed description of transformations
@@ -170,7 +181,8 @@ gh api search/code -X GET \
 ```
 
 Create `repos-all.txt` with final list (format: `org/repo`):
-```
+
+```text
 tatari-tv/repo-name-1
 tatari-tv/repo-name-2
 tatari-tv/repo-name-3
@@ -181,6 +193,7 @@ tatari-tv/repo-name-3
 Write a Python script (or bash script) that makes the changes. Key principles:
 
 **Script Structure:**
+
 ```python
 #!/usr/bin/env python3
 """
@@ -223,6 +236,7 @@ if __name__ == "__main__":
 ```
 
 **Best Practices:**
+
 - **Test-driven**: Write tests for your transformation script first (pytest recommended)
 - **Validation**: Always verify prerequisites exist before making changes
 - **Idempotent**: Script should be safe to run multiple times
@@ -305,9 +319,10 @@ turbolift create-prs --draft
 turbolift pr-status
 ```
 
-**STOP: Manual Validation Required**
+#### Manual Validation Required
 
 Before proceeding:
+
 - [ ] Review all draft PRs in GitHub web UI
 - [ ] Verify CI passes on all test PRs
 - [ ] Check that changes are exactly as intended
@@ -315,6 +330,7 @@ Before proceeding:
 - [ ] Test in at least one repo manually if applicable
 
 If any issues found:
+
 1. Delete draft PRs
 2. Fix the transformation script
 3. Reset repos: `turbolift foreach -- git reset --hard HEAD~1`
@@ -346,7 +362,7 @@ turbolift foreach -- 'git commit -m "Your commit message..."'
 turbolift create-prs --draft
 ```
 
-**STOP: Review and Validate**
+#### Review and Validate
 
 ### Phase 3: Batch Processing (groups of 20-30)
 
@@ -386,13 +402,15 @@ gh search prs 'org:tatari-tv SRE-XXXX is:draft is:open' --json number,title,repo
 
 #### Step 2: Mark PRs Ready for Review
 
-**For repos in current turbolift campaign:**
+##### For repos in current turbolift campaign
+
 ```bash
 cd SRE-XXXX-batch-X
 turbolift foreach -- gh pr ready
 ```
 
-**For repos outside current campaign:**
+##### For repos outside current campaign
+
 ```bash
 gh pr ready <PR_NUMBER> --repo org/repo-name
 ```
@@ -410,18 +428,21 @@ This shows:
 - Files modified
 
 Verify:
+
 - Changes match intent
 - No unexpected modifications
 - Formatting preserved
 
 #### Step 4: Batch Approve and Merge
 
-**Single command to approve and merge all PRs:**
+##### Single command to approve and merge all PRs
+
 ```bash
 slam review approve "SRE-XXXX: Brief description"
 ```
 
 slam automatically:
+
 - Validates each PR (CI passed, not draft, mergeable)
 - Approves the PR
 - Merges with squash
@@ -429,6 +450,7 @@ slam automatically:
 - Reports success/failure for each
 
 **Monitor the output** - if any PRs fail:
+
 - Review the error message
 - Handle failed PRs manually
 - Common issues: merge conflicts, CI failures, stale state
@@ -445,6 +467,7 @@ done
 ```
 
 Verify:
+
 - Latest CI run from merge is complete
 - Conclusion is "success"
 - Changes are in main branch
@@ -504,7 +527,7 @@ done
 
 Create and maintain a `PROGRESS.md` file:
 
-```markdown
+```text
 # Campaign Progress
 
 ## Status: Phase X - Y/Z repos complete (N%)
@@ -531,21 +554,25 @@ Update after each phase completion.
 ### Change Script Development
 
 1. **Write tests first** - Use pytest to test transformation logic
+
    ```bash
    pytest test_transformation.py -v
    ```
 
 2. **Handle edge cases gracefully**
+
    - Missing files → skip with message
    - Already transformed → detect and skip
    - Invalid format → error and skip
 
 3. **Preserve formatting**
+
    - Use text-based replacements when possible
    - Avoid parsing/serializing YAML (loses comments/formatting)
    - Test with `git diff` to verify formatting preserved
 
 4. **Fix cascading dependencies**
+
    - Example: Removing a job may break `needs:` references in other jobs
    - Script should detect and fix these automatically
    - See SRE-3447 for job dependency fixing example
@@ -553,26 +580,31 @@ Update after each phase completion.
 ### Campaign Execution
 
 1. **Always start with test batch** (2-5 repos)
+
    - Catch script issues early
    - Validate assumptions
    - Refine approach before scaling
 
 2. **Use draft PRs initially**
+
    - Allows review before making PRs public
    - Easy to delete and recreate if issues found
    - Convert to ready when validated
 
 3. **Process in phases with validation**
+
    - Test → Small batch → Larger batches
    - Stop and validate after each phase
    - Don't merge everything at once
 
 4. **Track progress meticulously**
+
    - Maintain PROGRESS.md
    - Document issues and resolutions
    - Record completion percentages
 
 5. **Handle failures gracefully**
+
    - If script fails on a repo, skip it and continue
    - Track failed repos separately
    - Investigate and handle manually if needed
@@ -582,16 +614,19 @@ Update after each phase completion.
 When campaigns involve releasing packages:
 
 1. **Always validate tag format before pushing**
+
    - Run `nextver.sh` for suggestion
    - Check existing releases: `gh release list --limit 3`
    - Verify against tag pattern in publish workflow
    - Don't blindly trust auto-generated versions
 
 2. **Watch for beta/alpha tags confusing version tools**
+
    - Can produce malformed versions like `vv1.0-beta.v1.0-beta`
    - Manually inspect and override if needed
 
 3. **Verify workflow triggers after tagging**
+
    ```bash
    gh run list --repo org/repo --workflow publish-release.yaml --limit 1
    ```
@@ -599,16 +634,19 @@ When campaigns involve releasing packages:
 ### Workflow Validation
 
 1. **Check for dangling job dependencies**
+
    - After removing jobs, scan for `needs:` references
    - Update or remove broken dependencies
    - Validate workflow syntax: `actionlint`
 
 2. **Verify CI passes before merging**
+
    - Review CI results in PRs
    - Spot-check a few repos manually
    - Don't merge if CI fails
 
 3. **Preserve existing behavior**
+
    - Only remove/change what's necessary
    - Keep unrelated configurations intact
    - Test that remaining workflows still function
@@ -661,12 +699,14 @@ gh release list --repo org/repo                  # List releases
 **Symptoms:** Transformation script exits with error for certain repos
 
 **Solutions:**
+
 - Check error message for specific issue (missing file, wrong format, etc.)
 - Add better error handling to script
 - Skip problematic repos and handle manually
 - Update script to handle edge case and re-run
 
 **Recovery:**
+
 ```bash
 # Reset a single repo
 cd work/org/repo
@@ -681,11 +721,13 @@ turbolift foreach -- git reset --hard HEAD~1
 **Symptoms:** Script using YAML parser fails or produces corrupted output
 
 **Solutions:**
+
 - Switch to text-based editing (regex replacements)
 - Preserves comments and formatting
 - More robust for varied YAML styles
 
 **Example:**
+
 ```python
 # Instead of parsing YAML:
 content = workflow_file.read_text()
@@ -702,12 +744,14 @@ workflow_file.write_text(new_content)
 **Symptoms:** `turbolift create-prs` fails with errors
 
 **Common causes:**
+
 - No commits in some repos (script didn't make changes)
 - Rate limiting (too many PRs too fast)
 - Authentication issues
 - Branch already exists
 
 **Solutions:**
+
 ```bash
 # Use rate limiting
 turbolift create-prs --draft --sleep 2s
@@ -724,6 +768,7 @@ turbolift foreach -- git status
 **Symptoms:** `slam review approve` reports failures
 
 **Common causes:**
+
 - CI not passing
 - PR is in draft state
 - Merge conflicts
@@ -731,6 +776,7 @@ turbolift foreach -- git status
 - Stale PR state
 
 **Solutions:**
+
 ```bash
 # Check PR status
 gh pr view <PR_NUMBER> --repo org/repo
@@ -753,11 +799,13 @@ gh pr merge <PR_NUMBER> --repo org/repo --squash
 **Symptoms:** Main branch CI fails after merging campaign PRs
 
 **Common causes:**
+
 - Missed dependencies in workflow files
 - Breaking changes not tested properly
 - Environment-specific issues
 
 **Solutions:**
+
 ```bash
 # Check CI failure
 gh run view <RUN_ID> --repo org/repo --log
@@ -777,6 +825,7 @@ git push
 **Example:** `vv1.0-beta.v1.0-beta` instead of `v1.0.5`
 
 **Solution:**
+
 ```bash
 # Delete malformed tag locally and remotely
 git tag -d <malformed-tag>
@@ -805,11 +854,13 @@ gh run list --repo org/repo --workflow publish-release.yaml --limit 1
 **Scope:** 63 repositories
 
 **Key Challenges:**
+
 - Two different package managers (Poetry and UV)
 - Mixed workflows (some with both PyPI and CodeArtifact)
 - Job dependencies that broke when PyPI jobs removed
 
 **Solution:**
+
 - Python script with text-based YAML editing
 - Verified CodeArtifact existed before removing PyPI
 - Automatically fixed dangling `needs:` references
@@ -825,12 +876,14 @@ gh run list --repo org/repo --workflow publish-release.yaml --limit 1
 **Scope:** 124 repositories (64 with changes needed)
 
 **Key Challenges:**
+
 - Distinguish install actions (read-only) from publish actions (write)
 - Preserve publish action configurations
 - Handle varied YAML formatting
 - Regex pattern for `${{ secrets.NAME }}` with flexible spacing
 
 **Solution:**
+
 - Python script with regex-based transformations
 - Separate handling for install vs publish actions
 - Pattern matching with whitespace flexibility
@@ -944,26 +997,26 @@ done
 
 ### Official Documentation
 
-- **turbolift**: https://github.com/Skyscanner/turbolift
-  - Installation: https://github.com/Skyscanner/turbolift#installation
-  - Usage guide: https://github.com/Skyscanner/turbolift#usage
+- **turbolift**: <https://github.com/Skyscanner/turbolift>
+  - Installation: <https://github.com/Skyscanner/turbolift#installation>
+  - Usage guide: <https://github.com/Skyscanner/turbolift#usage>
 
-- **gh CLI**: https://cli.github.com/
-  - Manual: https://cli.github.com/manual/
-  - Installation: https://github.com/cli/cli#installation
+- **gh CLI**: <https://cli.github.com/>
+  - Manual: <https://cli.github.com/manual/>
+  - Installation: <https://github.com/cli/cli#installation>
 
-- **slam**: https://github.com/scottidler/slam
-  - Releases: https://github.com/scottidler/slam/releases
+- **slam**: <https://github.com/scottidler/slam>
+  - Releases: <https://github.com/scottidler/slam/releases>
   - See "Alternative: Without slam" section above for gh CLI-only workflows
 
 ### Related Tools
 
 - **actionlint**: Validate GitHub Actions workflow syntax
-  - https://github.com/rhysd/actionlint
+  - <https://github.com/rhysd/actionlint>
   - Useful for validating workflow changes
 
 - **yq**: YAML processor for command-line
-  - https://github.com/mikefarah/yq
+  - <https://github.com/mikefarah/yq>
   - Alternative to custom YAML parsing
 
 ## Notes
