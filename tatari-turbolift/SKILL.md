@@ -269,20 +269,19 @@ git diff
 
 ### Phase 1: Test Campaign (2-5 repos)
 
-Initialize a turbolift campaign with test repositories:
+Initialize the main turbolift campaign with test repositories:
 
 ```bash
 cd SRE-XXXX-campaign-name
 
-# Create test repos list
-head -n 2 repos-all.txt > repos-test.txt
+# Create test repos list (start with 2-5 repos)
+head -n 2 repos-all.txt > repos.txt
 
-# Initialize campaign
-turbolift init --name "SRE-XXXX-test"
-cd SRE-XXXX-test
+# Initialize the main campaign (this will be reused for all batches)
+turbolift init --name "SRE-XXXX-campaign-name"
+cd SRE-XXXX-campaign-name
 
-# Copy files
-cp ../repos-test.txt repos.txt
+# Copy transformation script
 cp ../transformation-script.py .
 ```
 
@@ -307,8 +306,7 @@ less .github/workflows/ci.yaml
 cd ../../..
 
 # 5. If changes look good, commit
-turbolift foreach -- git add -A
-turbolift foreach -- git commit -m "Brief commit title
+turbolift commit -m "Brief commit title
 
 - Detail about change 1
 - Detail about change 2
@@ -340,57 +338,127 @@ If any issues found:
 3. Reset repos: `turbolift foreach -- git reset --hard HEAD~1`
 4. Re-run from step 2
 
-### Phase 2: Small Batch (5-10 repos)
+#### Automated CI Monitoring
 
-After test campaign succeeds:
+**Wait for CI to complete** before marking PRs ready:
 
 ```bash
-cd ..  # Back to SRE-XXXX-campaign-name
+# Check CI status for all PRs in campaign
+turbolift pr-status
 
-# Create small batch list
-sed -n '3,10p' repos-all.txt > repos-batch-1.txt
+# Use gh to check detailed status for each PR
+gh search prs 'org:tatari-tv SRE-XXXX is:draft is:open' \
+  --json number,title,repository,statusCheckRollup \
+  --jq '.[] | "\(.repository.name): \(.statusCheckRollup[0].state)"'
+```
 
-# New campaign for small batch
-turbolift init --name "SRE-XXXX-batch-1"
-cd SRE-XXXX-batch-1
+**Monitor CI progress:**
 
-cp ../repos-batch-1.txt repos.txt
-cp ../transformation-script.py .
+```bash
+# Watch a specific PR's CI runs
+gh pr checks <PR_NUMBER> --repo org/repo --watch
 
-# Run the campaign (same steps as Phase 1)
+# Check recent workflow runs across repos
+for repo in $(cat repos.txt); do
+  echo "=== $repo ==="
+  gh run list --repo $repo --limit 1 \
+    --json status,conclusion,workflowName,createdAt
+done
+```
+
+**If CI fails, retrieve logs:**
+
+```bash
+# Find the failed run ID
+gh run list --repo org/repo --limit 5
+
+# View the logs for failed run
+gh run view <RUN_ID> --repo org/repo --log
+
+# Download logs to file for analysis
+gh run view <RUN_ID> --repo org/repo --log > ci-failure.log
+```
+
+**Fix failures and update PRs:**
+
+```bash
+# Navigate to the repo with failures
+cd work/org/repo
+
+# Make fixes
+# ... edit files ...
+
+# Commit and push updates
+git add -A
+git commit -m "Fix: address CI failure"
+git push
+
+# Verify CI passes
+gh pr checks --watch
+```
+
+**Only proceed when all CI checks pass** across all draft PRs.
+
+---
+
+**⚠️ STOP: Verify CI Status Before Continuing**
+
+Before proceeding to the next phase:
+
+1. ✅ **Confirm all CI checks have passed** on all draft PRs
+2. ✅ **Review any CI failures** and verify fixes are working
+3. ✅ **Manually test changes** if applicable
+4. ✅ **Review draft PRs** in GitHub UI one final time
+
+**DO NOT proceed to Phase 2 until:**
+- All draft PRs show green checkmarks (CI passing)
+- You have reviewed and validated the changes
+- You are confident the changes are correct
+
+Once ready, you can proceed to Phase 2 to add more repositories to the campaign.
+
+### Phase 2: Small Batch (5-10 repos)
+
+After test campaign succeeds, add more repos to the existing campaign:
+
+```bash
+cd ..  # Back to parent directory
+cd SRE-XXXX-campaign-name  # Enter the main campaign directory
+
+# Replace repos.txt with the next batch
+sed -n '3,10p' ../repos-all.txt > repos.txt
+
+# Clone the newly added repos (turbolift skips already-cloned repos)
 turbolift clone
+
+# Run the campaign on the new repos (same steps as Phase 1)
 turbolift foreach -- python3 ../transformation-script.py
 turbolift foreach -- git diff
-turbolift foreach -- git add -A
-turbolift foreach -- 'git commit -m "Your commit message..."'
-turbolift create-prs --draft
+turbolift commit -m "Your commit message..."
 ```
 
 #### Review and Validate
 
 ### Phase 3: Batch Processing (groups of 20-30)
 
-Process remaining repos in manageable batches:
+Process remaining repos in manageable batches by continuing to append to the existing campaign:
 
 ```bash
-cd /path/to/SRE-XXXX-campaign-name
+cd /path/to/SRE-XXXX-campaign-name/SRE-XXXX-campaign-name
 
 # Batch 2 (repos 11-30)
-sed -n '11,30p' repos-all.txt > repos-batch-2.txt
-
-turbolift init --name "SRE-XXXX-batch-2"
-cd SRE-XXXX-batch-2
-cp ../repos-batch-2.txt repos.txt
-cp ../transformation-script.py .
+sed -n '11,30p' ../repos-all.txt > repos.txt
 
 turbolift clone
 turbolift foreach -- python3 ../transformation-script.py
 turbolift foreach -- git diff
-turbolift foreach -- git add -A
-turbolift foreach -- 'git commit -m "..."'
+turbolift commit -m "..."
 turbolift create-prs --draft
 
-# Repeat for subsequent batches...
+# Repeat for subsequent batches by replacing repos.txt:
+# sed -n '31,50p' ../repos-all.txt > repos.txt
+# turbolift clone
+# ... (repeat the same steps)
 ```
 
 ### Phase 4: Batch PR Review & Merge with slam
@@ -443,7 +511,9 @@ Verify:
 ##### Single command to approve and merge all PRs
 
 ```bash
-slam review approve "SRE-XXXX: Brief description"
+# Extract the PR title from the campaign's README.md header
+PR_TITLE=$(head -n 1 README.md | sed 's/^# //')
+slam review approve "$PR_TITLE"
 ```
 
 slam automatically:
@@ -460,22 +530,71 @@ slam automatically:
 - Handle failed PRs manually
 - Common issues: merge conflicts, CI failures, stale state
 
-#### Step 5: Verify Merged Changes
+#### Step 5: Monitor Main Branch CI After Merge
+
+After slam merges PRs, **actively monitor CI on main branch**:
 
 ```bash
-# Check CI status for merged repos
-for repo in <list-of-repos>; do
+# Wait for CI to trigger on main branch (give it a moment)
+sleep 10
+
+# Monitor CI status for all merged repos
+for repo in $(cat repos.txt); do
   echo "=== $repo ==="
-  gh run list --repo org/$repo --branch main --limit 1 \
-    --json status,conclusion,workflowName,createdAt
+
+  # Get latest main branch CI run
+  gh run list --repo $repo --branch main --limit 1 \
+    --json status,conclusion,workflowName,createdAt,databaseId
 done
 ```
 
-Verify:
+**Watch CI runs to completion:**
 
-- Latest CI run from merge is complete
-- Conclusion is "success"
-- Changes are in main branch
+```bash
+# Watch a specific repo's main branch CI
+gh run watch --repo org/repo
+
+# Or check all repos periodically
+for repo in $(cat repos.txt); do
+  echo "=== $repo ==="
+  run_id=$(gh run list --repo $repo --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+  gh run view $run_id --repo $repo --json status,conclusion,workflowName \
+    --jq '"Status: \(.status) | Conclusion: \(.conclusion) | Workflow: \(.workflowName)"'
+done
+```
+
+**If CI fails on main branch, retrieve logs:**
+
+```bash
+# Find the failed run
+gh run list --repo org/repo --branch main --limit 5
+
+# View failure logs
+gh run view <RUN_ID> --repo org/repo --log
+
+# Investigate and create hotfix PR if needed
+cd work/org/repo
+git checkout main
+git pull
+git checkout -b hotfix-sre-xxxx
+# Make fixes
+git add -A
+git commit -m "Hotfix: resolve main branch CI failure"
+git push origin hotfix-sre-xxxx
+gh pr create --title "Hotfix: SRE-XXXX CI failure" --body "Fixes CI failure on main"
+```
+
+**Verify all repos:**
+
+- ✅ Latest CI run on main branch is complete
+- ✅ Conclusion is "success" for all repos
+- ✅ No merge-related failures
+- ✅ Changes are deployed/published as expected
+
+**DO NOT consider campaign complete until:**
+- All main branch CI checks pass
+- Any failures have been investigated and resolved
+- Production deployments (if applicable) have completed successfully
 
 ### Phase 5: Post-Merge Tasks (if applicable)
 
@@ -678,7 +797,7 @@ turbolift update-prs                             # Update existing PRs after new
 ```bash
 slam review ls 'SRE-XXXX'                        # List PRs by change ID pattern
 slam review clone 'SRE-XXXX'                     # Clone all repos with matching PRs
-slam review approve "SRE-XXXX: Description"      # Approve and merge all matching PRs
+slam review approve "$(head -n 1 README.md | sed 's/^# //')"  # Approve and merge (uses PR title from README.md)
 slam review delete "pattern"                     # Close PRs and delete branches
 slam review purge                                # Purge all SLAM branches (use with caution)
 ```
