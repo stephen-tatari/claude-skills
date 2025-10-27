@@ -82,15 +82,14 @@ turbolift foreach -- git diff
 turbolift foreach -- git diff pyproject.toml
 turbolift foreach -- git diff .github/workflows/
 
-# Add and commit
-turbolift foreach -- git add -A
-turbolift foreach -- 'git commit -m "Remove PyPICloud publishing configuration
+# Commit changes
+turbolift commit -m "Remove PyPICloud publishing configuration
 
 - Remove PyPICloud source from pyproject.toml
 - Remove pypi-upload/pypi-uv-publish workflow jobs/steps
 - Keep CodeArtifact publishing configuration
 
-Part of SRE-3447"'
+Part of SRE-3447"
 ```
 
 ### Create Pull Requests
@@ -212,10 +211,11 @@ slam review clone 'SRE-3449'
 
 ```bash
 # Single command to approve + merge all matching PRs
-slam review approve "SRE-XXXX: Description"
-
+# Extract PR title from campaign's README.md header
+slam review approve "$(head -n 1 README.md | sed 's/^# //')"
 # Real example from SRE-3447:
-slam review approve "SRE-3447: Remove PyPICloud Publishing Configuration"
+PR_TITLE=$(head -n 1 README.md | sed 's/^# //')
+slam review approve "$PR_TITLE"
 ```
 
 **What it does:**
@@ -545,8 +545,7 @@ turbolift foreach -- python3 ../transformation-script.py
 turbolift foreach -- git diff
 
 # 6. Commit
-turbolift foreach -- git add -A
-turbolift foreach -- git commit -m "Description of changes"
+turbolift commit -m "Description of changes"
 
 # 7. Create draft PRs
 turbolift create-prs --draft --sleep 2s
@@ -558,7 +557,8 @@ turbolift pr-status
 turbolift foreach -- gh pr ready
 
 # 10. Batch merge with slam
-slam review approve "SRE-XXXX: Description"
+PR_TITLE=$(head -n 1 README.md | sed 's/^# //')
+slam review approve "$PR_TITLE"
 ```
 
 ### Verify Campaign Results
@@ -693,19 +693,19 @@ turbolift clone
 turbolift foreach -- python3 ../remove-pypicloud.py
 turbolift foreach -- git diff
 turbolift foreach -- git add -A
-turbolift foreach -- 'git commit -m "Remove PyPICloud publishing configuration
+turbolift commit -m "Remove PyPICloud publishing configuration
 
 - Remove PyPICloud source from pyproject.toml
 - Remove pypi-upload/pypi-uv-publish workflow jobs/steps
 - Keep CodeArtifact publishing configuration
 
-Part of SRE-3447"'
-
-turbolift create-prs --draft
+Part of SRE-3447"
 
 # After validation
 turbolift foreach -- gh pr ready
-slam review approve "Remove PyPICloud publishing"
+slam review ls 'SRE-3449'
+PR_TITLE=$(head -n 1 README.md | sed 's/^# //')
+slam review approve "$PR_TITLE"
 
 # Check merged status
 ./check-merged-prs.sh
@@ -737,8 +737,8 @@ turbolift pr-status
 # After validation
 turbolift foreach -- gh pr ready
 slam review ls 'SRE-3449'
-slam review approve "SRE-3449: Use Read-Only CodeArtifact Role for Install Actions"
-
+PR_TITLE=$(head -n 1 README.md | sed 's/^# //')
+slam review approve "$PR_TITLE"
 # Verify all install actions updated
 for repo in $(cat repos.txt); do
   echo "=== $repo ==="
