@@ -571,6 +571,16 @@ turbolift foreach -- gh pr ready
 # 12. Batch merge with slam
 PR_TITLE=$(head -n 1 README.md | sed 's/^# //')
 slam review approve "$PR_TITLE"
+
+# 13. Monitor main branch CI after merge
+sleep 10  # Wait for CI to trigger
+for repo in $(cat repos.txt); do
+  echo "=== $repo ==="
+  gh run list --repo $repo --branch main --limit 1 \
+    --json status,conclusion,workflowName
+done
+
+# Wait for all CI to pass on main branch before considering campaign complete
 ```
 
 ### Verify Campaign Results
@@ -580,12 +590,15 @@ slam review approve "$PR_TITLE"
 gh search prs 'org:tatari-tv SRE-XXXX is:merged' \
   --json repository --jq '.[].repository.name' | sort
 
-# 2. Check CI status on main for each repo
+# 2. Monitor CI status on main branch (wait for completion)
+# Repeat until all repos show status: completed, conclusion: success
 for repo in $(cat repos.txt); do
   echo "=== $repo ==="
   gh run list --repo $repo --branch main --limit 1 \
     --json status,conclusion,workflowName
 done
+
+# ⚠️ Only proceed to verification after all main branch CI passes
 
 # 3. Verify specific files changed
 for repo in $(cat repos.txt); do
@@ -729,6 +742,13 @@ slam review approve "$PR_TITLE"
 
 # Check merged status
 ./check-merged-prs.sh
+
+# Monitor main branch CI after merge
+for repo in $(cat repos.txt); do
+  echo "=== $repo ==="
+  gh run list --repo $repo --branch main --limit 1 \
+    --json status,conclusion,workflowName
+done
 ```
 
 ### SRE-3449: Use Read-Only CodeArtifact Role
@@ -766,6 +786,14 @@ turbolift foreach -- gh pr ready
 slam review ls 'SRE-3449'
 PR_TITLE=$(head -n 1 README.md | sed 's/^# //')
 slam review approve "$PR_TITLE"
+
+# Monitor main branch CI to completion
+sleep 10
+for repo in $(cat repos.txt); do
+  gh run list --repo $repo --branch main --limit 1 \
+    --json status,conclusion
+done
+
 # Verify all install actions updated
 for repo in $(cat repos.txt); do
   echo "=== $repo ==="
@@ -776,26 +804,29 @@ done
 ### Batch Processing Pattern
 
 ```bash
-# Process in batches of 20
-cd /path/to/campaign
+# Process in batches of 20, reusing the same campaign directory
+cd /path/to/SRE-XXXX-campaign
 
-# Batch 1
-sed -n '1,20p' repos-all.txt > repos-batch-1.txt
-turbolift init --name "SRE-XXXX-batch-1"
-cd SRE-XXXX-batch-1
-cp ../repos-batch-1.txt repos.txt
-# ... run campaign
+# Initialize campaign with first batch
+sed -n '1,20p' ../repos-all.txt > repos.txt
+turbolift init --name "SRE-XXXX-campaign"
+cd SRE-XXXX-campaign
+cp ../transformation-script.py .
+# ... run campaign workflow (clone, transform, commit, create PRs)
+# Wait for CI to pass, mark ready, merge with slam
 
-# Batch 2
-cd ..
-sed -n '21,40p' repos-all.txt > repos-batch-2.txt
-turbolift init --name "SRE-XXXX-batch-2"
-cd SRE-XXXX-batch-2
-cp ../repos-batch-2.txt repos.txt
-# ... run campaign
+# Batch 2 - replace repos.txt with next batch
+cd /path/to/SRE-XXXX-campaign/SRE-XXXX-campaign
+sed -n '21,40p' ../../repos-all.txt > repos.txt
+# ... run campaign workflow (clone, transform, commit, create PRs)
+# turbolift clone will skip already-cloned repos automatically
+# Wait for CI, mark ready, merge with slam
 
-# After all batches, merge with slam
-slam review approve "SRE-XXXX"
+# Batch 3 - replace repos.txt with next batch
+sed -n '41,60p' ../../repos-all.txt > repos.txt
+# ... repeat workflow
+
+# After all batches complete, verify all main branch CI passes
 ```
 
 ---

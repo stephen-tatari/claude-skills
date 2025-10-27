@@ -425,8 +425,8 @@ After test campaign succeeds, add more repos to the existing campaign:
 cd ..  # Back to parent directory
 cd SRE-XXXX-campaign-name  # Enter the main campaign directory
 
-# Append next batch of repos to the existing campaign
-sed -n '3,10p' repos-all.txt >> repos.txt
+# Replace repos.txt with the next batch
+sed -n '3,10p' ../repos-all.txt > repos.txt
 
 # Clone the newly added repos (turbolift skips already-cloned repos)
 turbolift clone
@@ -447,7 +447,7 @@ Process remaining repos in manageable batches by continuing to append to the exi
 cd /path/to/SRE-XXXX-campaign-name/SRE-XXXX-campaign-name
 
 # Batch 2 (repos 11-30)
-sed -n '11,30p' ../repos-all.txt >> repos.txt
+sed -n '11,30p' ../repos-all.txt > repos.txt
 
 turbolift clone
 turbolift foreach -- python3 ../transformation-script.py
@@ -455,8 +455,8 @@ turbolift foreach -- git diff
 turbolift commit -m "..."
 turbolift create-prs --draft
 
-# Repeat for subsequent batches by appending more repos:
-# sed -n '31,50p' ../repos-all.txt >> repos.txt
+# Repeat for subsequent batches by replacing repos.txt:
+# sed -n '31,50p' ../repos-all.txt > repos.txt
 # turbolift clone
 # ... (repeat the same steps)
 ```
@@ -530,22 +530,71 @@ slam automatically:
 - Handle failed PRs manually
 - Common issues: merge conflicts, CI failures, stale state
 
-#### Step 5: Verify Merged Changes
+#### Step 5: Monitor Main Branch CI After Merge
+
+After slam merges PRs, **actively monitor CI on main branch**:
 
 ```bash
-# Check CI status for merged repos
-for repo in <list-of-repos>; do
+# Wait for CI to trigger on main branch (give it a moment)
+sleep 10
+
+# Monitor CI status for all merged repos
+for repo in $(cat repos.txt); do
   echo "=== $repo ==="
-  gh run list --repo org/$repo --branch main --limit 1 \
-    --json status,conclusion,workflowName,createdAt
+
+  # Get latest main branch CI run
+  gh run list --repo $repo --branch main --limit 1 \
+    --json status,conclusion,workflowName,createdAt,databaseId
 done
 ```
 
-Verify:
+**Watch CI runs to completion:**
 
-- Latest CI run from merge is complete
-- Conclusion is "success"
-- Changes are in main branch
+```bash
+# Watch a specific repo's main branch CI
+gh run watch --repo org/repo
+
+# Or check all repos periodically
+for repo in $(cat repos.txt); do
+  echo "=== $repo ==="
+  run_id=$(gh run list --repo $repo --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+  gh run view $run_id --repo $repo --json status,conclusion,workflowName \
+    --jq '"Status: \(.status) | Conclusion: \(.conclusion) | Workflow: \(.workflowName)"'
+done
+```
+
+**If CI fails on main branch, retrieve logs:**
+
+```bash
+# Find the failed run
+gh run list --repo org/repo --branch main --limit 5
+
+# View failure logs
+gh run view <RUN_ID> --repo org/repo --log
+
+# Investigate and create hotfix PR if needed
+cd work/org/repo
+git checkout main
+git pull
+git checkout -b hotfix-sre-xxxx
+# Make fixes
+git add -A
+git commit -m "Hotfix: resolve main branch CI failure"
+git push origin hotfix-sre-xxxx
+gh pr create --title "Hotfix: SRE-XXXX CI failure" --body "Fixes CI failure on main"
+```
+
+**Verify all repos:**
+
+- ✅ Latest CI run on main branch is complete
+- ✅ Conclusion is "success" for all repos
+- ✅ No merge-related failures
+- ✅ Changes are deployed/published as expected
+
+**DO NOT consider campaign complete until:**
+- All main branch CI checks pass
+- Any failures have been investigated and resolved
+- Production deployments (if applicable) have completed successfully
 
 ### Phase 5: Post-Merge Tasks (if applicable)
 
