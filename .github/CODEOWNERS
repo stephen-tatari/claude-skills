@@ -1,0 +1,9 @@
+# Code Owners for claude-skills repository
+# These owners will be automatically requested for review when PRs are opened
+
+# Global owner for all files
+* @stephen-tatari
+
+# Individual skills can have specific owners
+# Example:
+# /skill-name/ @owner-username
