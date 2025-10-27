@@ -306,8 +306,7 @@ less .github/workflows/ci.yaml
 cd ../../..
 
 # 5. If changes look good, commit
-turbolift foreach -- git add -A
-turbolift foreach -- git commit -m "Brief commit title
+turbolift commit -m "Brief commit title
 
 - Detail about change 1
 - Detail about change 2
@@ -356,9 +355,7 @@ turbolift clone
 # Run the campaign on the new repos (same steps as Phase 1)
 turbolift foreach -- python3 ../transformation-script.py
 turbolift foreach -- git diff
-turbolift foreach -- git add -A
-turbolift foreach -- 'git commit -m "Your commit message..."'
-turbolift create-prs --draft
+turbolift commit -m "Your commit message..."
 ```
 
 #### Review and Validate
@@ -376,8 +373,7 @@ sed -n '11,30p' ../repos-all.txt >> repos.txt
 turbolift clone
 turbolift foreach -- python3 ../transformation-script.py
 turbolift foreach -- git diff
-turbolift foreach -- git add -A
-turbolift foreach -- 'git commit -m "..."'
+turbolift commit -m "..."
 turbolift create-prs --draft
 
 # Repeat for subsequent batches by appending more repos:
@@ -673,7 +669,7 @@ turbolift update-prs                             # Update existing PRs after new
 ```bash
 slam review ls 'SRE-XXXX'                        # List PRs by change ID pattern
 slam review clone 'SRE-XXXX'                     # Clone all repos with matching PRs
-slam review approve "SRE-XXXX: Description"      # Approve and merge all matching PRs
+slam review approve "$(head -n 1 README.md | sed 's/^# //')"  # Approve and merge (uses PR title from README.md)
 slam review delete "pattern"                     # Close PRs and delete branches
 slam review purge                                # Purge all SLAM branches (use with caution)
 ```
