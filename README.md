@@ -1,6 +1,6 @@
 # Claude Skills
 
-[![CI](https://github.com/USERNAME/claude-skills/workflows/CI/badge.svg)](https://github.com/USERNAME/claude-skills/actions)
+[![CI](https://github.com/stephen-tatari/claude-skills/workflows/CI/badge.svg)](https://github.com/stephen-tatari/claude-skills/actions)
 
 A curated collection of reusable Skills for Claude Code and other AI coding agents.
 
@@ -18,7 +18,7 @@ Skills are modular capabilities that extend AI agent functionality with speciali
 
 ```bash
 # Clone the repository
-git clone https://github.com/USERNAME/claude-skills.git
+git clone https://github.com/stephen-tatari/claude-skills.git
 
 # Copy desired skills to your global skills directory
 cp -r claude-skills/skill-name ~/.claude/skills/
