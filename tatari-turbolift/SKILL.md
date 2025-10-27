@@ -25,31 +25,105 @@ Use this workflow when you need to:
 ## Tools Overview
 
 ### turbolift
-Campaign management tool for bulk repository operations:
+
+**What it is:** Open-source campaign management tool for bulk repository operations by Skyscanner
+
+**Features:**
 - Clones multiple repos in a workspace
-- Applies changes uniformly
+- Applies changes uniformly via foreach
 - Creates PRs across all repos
 - Tracks campaign progress
 
-**Installation:** Already installed at `~/bin/turbolift`
+**Documentation & Download:**
+- GitHub: https://github.com/Skyscanner/turbolift
+- Releases: https://github.com/Skyscanner/turbolift/releases
+
+**Installation:**
+```bash
+# macOS (Homebrew)
+brew install skyscanner/tap/turbolift
+
+# Or download binary from releases page
+# Place in ~/bin/ or /usr/local/bin/
+
+# Verify installation
+turbolift --version
+```
+
+**Configuration:**
+Requires GitHub authentication (uses gh CLI under the hood)
 
 ### slam
-Batch PR review and merge tool:
+
+**What it is:** HPA (Horizontal PR Autoscaler) - batch PR management tool
+
+**Features:**
 - Reviews PRs across multiple repos by change ID
 - Approves and merges PRs in bulk
 - Validates CI status before merging
 - Cleans up branches automatically
 
-**Installation:** Already installed at `~/bin/slam`
+**Documentation & Download:**
+- GitHub: https://github.com/scottidler/slam
+- Releases: https://github.com/scottidler/slam/releases
+
+**Installation:**
+```bash
+# Install via Rust cargo
+cargo install --git https://github.com/scottidler/slam
+
+# Or download binary from releases page
+# Place in ~/bin/ or /usr/local/bin/
+
+# Verify installation
+slam --version
+```
+
+**Configuration:**
+- Requires GitHub authentication (uses gh CLI)
+- Logs written to: `~/.local/share/slam/slam.log`
+- Default organization: `tatari-tv` (configurable with `--org` flag)
+
+**Note:** If slam is not available or you prefer not to use it, see "Alternative: Without slam" section below for gh CLI-only workflows
 
 ### gh
-GitHub CLI for individual repository operations:
+
+**What it is:** Official GitHub CLI for repository operations
+
+**Features:**
 - Searches for PRs across organization
 - Manages PR states (draft → ready)
 - Checks workflow runs and releases
 - Validates tags and deployments
 
-**Installation:** Standard system installation
+**Documentation & Download:**
+- Website: https://cli.github.com/
+- GitHub: https://github.com/cli/cli
+- Docs: https://cli.github.com/manual/
+
+**Installation:**
+```bash
+# macOS
+brew install gh
+
+# Linux
+# See: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+
+# Windows
+# See: https://github.com/cli/cli#windows
+
+# Verify installation
+gh --version
+```
+
+**Configuration:**
+```bash
+# Authenticate with GitHub
+gh auth login
+
+# Verify authentication
+gh auth status
+```
 
 ## Complete Workflow
 
@@ -802,17 +876,140 @@ gh run list --repo org/repo --workflow publish-release.yaml --limit 1
 
 **Location:** `~/code/work/SRE-3449`
 
+## Alternative: Without slam
+
+If `slam` is not available in your environment, use this alternative workflow for Phase 4:
+
+### Batch PR Review (gh CLI only)
+
+```bash
+# Step 1: List all PRs matching pattern
+gh search prs 'org:your-org SRE-XXXX is:open' \
+  --json number,title,repository,url \
+  --jq '.[] | "\(.repository.name): PR #\(.number) - \(.url)"'
+
+# Step 2: Mark PRs ready (if draft)
+for repo in $(cat repos.txt); do
+  cd work/$repo
+  gh pr ready
+  cd ../..
+done
+
+# Step 3: Review diffs
+for repo in $(cat repos.txt); do
+  echo "=== $repo ==="
+  gh pr diff --repo $repo
+done
+
+# Step 4: Approve and merge (manual loop)
+for repo in $(cat repos.txt); do
+  echo "=== Processing $repo ==="
+
+  # Get PR number
+  pr_number=$(gh pr list --repo $repo --search "SRE-XXXX" --json number --jq '.[0].number')
+
+  if [ -z "$pr_number" ]; then
+    echo "⏭️  No PR found, skipping"
+    continue
+  fi
+
+  # Check CI status
+  ci_status=$(gh pr view $pr_number --repo $repo --json statusCheckRollup --jq '.statusCheckRollup[0].conclusion')
+
+  if [ "$ci_status" != "SUCCESS" ]; then
+    echo "⚠️  CI not passing ($ci_status), skipping"
+    continue
+  fi
+
+  # Approve
+  gh pr review $pr_number --repo $repo --approve
+
+  # Merge
+  gh pr merge $pr_number --repo $repo --squash --delete-branch
+
+  echo "✅ Merged PR #$pr_number"
+  sleep 2  # Rate limiting
+done
+```
+
+### Batch Operations Script
+
+Create a helper script `batch-pr-ops.sh`:
+
+```bash
+#!/bin/bash
+# Batch PR operations without slam
+
+ACTION=$1  # approve, merge, status
+PATTERN=$2 # Search pattern like "SRE-XXXX"
+
+if [ -z "$ACTION" ] || [ -z "$PATTERN" ]; then
+  echo "Usage: $0 <approve|merge|status> <pattern>"
+  exit 1
+fi
+
+# Find all matching PRs
+repos=$(gh search prs "org:your-org $PATTERN is:open" --json repository --jq '.[].repository.name' | sort -u)
+
+for repo in $repos; do
+  pr_number=$(gh pr list --repo your-org/$repo --search "$PATTERN" --json number --jq '.[0].number')
+
+  if [ -z "$pr_number" ]; then
+    continue
+  fi
+
+  case $ACTION in
+    status)
+      gh pr view $pr_number --repo your-org/$repo --json number,title,state,statusCheckRollup \
+        --jq '"PR #\(.number): \(.title) - \(.state) - CI: \(.statusCheckRollup[0].conclusion)"'
+      ;;
+    approve)
+      gh pr review $pr_number --repo your-org/$repo --approve
+      echo "✅ Approved your-org/$repo PR #$pr_number"
+      ;;
+    merge)
+      gh pr merge $pr_number --repo your-org/$repo --squash --delete-branch
+      echo "✅ Merged your-org/$repo PR #$pr_number"
+      ;;
+  esac
+
+  sleep 1
+done
+```
+
 ## Additional Resources
 
-- turbolift GitHub: https://github.com/Skyscanner/turbolift
-- slam is an internal Tatari tool
-- gh CLI docs: https://cli.github.com/manual/
+### Official Documentation
+
+- **turbolift**: https://github.com/Skyscanner/turbolift
+  - Installation: https://github.com/Skyscanner/turbolift#installation
+  - Usage guide: https://github.com/Skyscanner/turbolift#usage
+
+- **gh CLI**: https://cli.github.com/
+  - Manual: https://cli.github.com/manual/
+  - Installation: https://github.com/cli/cli#installation
+
+- **slam**: https://github.com/scottidler/slam
+  - Releases: https://github.com/scottidler/slam/releases
+  - See "Alternative: Without slam" section above for gh CLI-only workflows
+
+### Related Tools
+
+- **actionlint**: Validate GitHub Actions workflow syntax
+  - https://github.com/rhysd/actionlint
+  - Useful for validating workflow changes
+
+- **yq**: YAML processor for command-line
+  - https://github.com/mikefarah/yq
+  - Alternative to custom YAML parsing
 
 ## Notes
 
-- Both `turbolift` and `slam` are already installed at `~/bin/`
-- Campaigns typically stored in `~/code/work/`
-- Use draft PRs for safety - easy to review and delete before making public
-- Always validate in small batches before scaling to full scope
-- Track progress meticulously - campaigns can span days or weeks
-- When in doubt, process manually rather than risk incorrect bulk changes
+- **Tool availability:** Check that `turbolift`, `slam` (or alternatives), and `gh` are installed before starting
+- **Authentication:** Ensure GitHub authentication is configured (`gh auth status`)
+- **Storage:** Campaigns typically stored in `~/code/work/` or similar directory
+- **Safety first:** Use draft PRs initially - easy to review and delete before making public
+- **Incremental validation:** Always validate in small batches before scaling to full scope
+- **Progress tracking:** Track progress meticulously - campaigns can span days or weeks
+- **Manual fallback:** When in doubt, process manually rather than risk incorrect bulk changes
+- **Rate limiting:** Be mindful of GitHub API rate limits - use `--sleep` flags when available
