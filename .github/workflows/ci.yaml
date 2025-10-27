@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  validate:
+    name: Validate Skills
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml
+
+      - name: Validate skill structure
+        run: |
+          python3 << 'EOF'
+          import os
+          import sys
+          import yaml
+          import re
+          from pathlib import Path
+
+          errors = []
+          warnings = []
+
+          # Get all directories in the root that might be skills
+          root = Path('.')
+          skill_dirs = [d for d in root.iterdir() if d.is_dir() and not d.name.startswith('.') and d.name not in ['scripts', 'docs']]
+
+          if not skill_dirs:
+              print("No skill directories found")
+              sys.exit(0)
+
+          for skill_dir in skill_dirs:
+              skill_name = skill_dir.name
+              skill_md = skill_dir / 'SKILL.md'
+
+              print(f"\n🔍 Checking {skill_name}/")
+
+              # Check if SKILL.md exists
+              if not skill_md.exists():
+                  errors.append(f"❌ {skill_name}/: Missing required SKILL.md file")
+                  continue
+
+              # Read and parse SKILL.md
+              try:
+                  content = skill_md.read_text()
+
+                  # Extract YAML frontmatter
+                  if not content.startswith('---'):
+                      errors.append(f"❌ {skill_name}/SKILL.md: Missing YAML frontmatter (must start with ---)")
+                      continue
+
+                  # Find the end of frontmatter
+                  parts = content.split('---', 2)
+                  if len(parts) < 3:
+                      errors.append(f"❌ {skill_name}/SKILL.md: Invalid YAML frontmatter (must be enclosed in ---)")
+                      continue
+
+                  frontmatter = parts[1].strip()
+
+                  # Parse YAML
+                  try:
+                      metadata = yaml.safe_load(frontmatter)
+                  except yaml.YAMLError as e:
+                      errors.append(f"❌ {skill_name}/SKILL.md: Invalid YAML syntax: {e}")
+                      continue
+
+                  # Validate required fields
+                  if 'name' not in metadata:
+                      errors.append(f"❌ {skill_name}/SKILL.md: Missing required 'name' field in frontmatter")
+                      continue
+
+                  if 'description' not in metadata:
+                      errors.append(f"❌ {skill_name}/SKILL.md: Missing required 'description' field in frontmatter")
+                      continue
+
+                  # Validate name matches directory
+                  yaml_name = metadata['name']
+                  if yaml_name != skill_name:
+                      errors.append(f"❌ {skill_name}/SKILL.md: Name field '{yaml_name}' doesn't match directory name '{skill_name}'")
+
+                  # Validate naming convention (lowercase with hyphens only)
+                  if not re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', skill_name):
+                      errors.append(f"❌ {skill_name}/: Invalid directory name (must be lowercase letters, numbers, and hyphens only)")
+
+                  # Check name length
+                  if len(skill_name) > 64:
+                      errors.append(f"❌ {skill_name}/: Directory name exceeds 64 characters")
+
+                  # Check description length
+                  if len(metadata['description']) > 1024:
+                      warnings.append(f"⚠️  {skill_name}/: Description exceeds recommended 1024 characters")
+
+                  # Validate allowed-tools if present
+                  if 'allowed-tools' in metadata:
+                      allowed_tools = metadata['allowed-tools']
+                      if isinstance(allowed_tools, str):
+                          # Check format
+                          tools = [t.strip() for t in allowed_tools.split(',')]
+                          valid_tools = {'Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'WebFetch', 'WebSearch'}
+                          for tool in tools:
+                              if tool not in valid_tools:
+                                  warnings.append(f"⚠️  {skill_name}/: Unknown tool '{tool}' in allowed-tools")
+
+                  print(f"  ✅ Valid structure")
+
+              except Exception as e:
+                  errors.append(f"❌ {skill_name}/SKILL.md: Error reading file: {e}")
+
+          # Print summary
+          print("\n" + "="*60)
+          if warnings:
+              print("\nWarnings:")
+              for warning in warnings:
+                  print(warning)
+
+          if errors:
+              print("\nErrors:")
+              for error in errors:
+                  print(error)
+              print(f"\n❌ Validation failed with {len(errors)} error(s)")
+              sys.exit(1)
+          else:
+              print("\n✅ All skills validated successfully!")
+              sys.exit(0)
+          EOF
+
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Create markdownlint config
+        run: |
+          cat > .markdownlint.json << 'EOF'
+          {
+            "default": true,
+            "MD013": false,
+            "MD033": false,
+            "MD041": false
+          }
+          EOF
+
+      - name: Run markdownlint
+        run: markdownlint '**/*.md' --ignore node_modules --ignore .git
