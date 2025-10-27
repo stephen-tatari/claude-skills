@@ -18,6 +18,7 @@ Use this workflow when you need to:
 - **Apply security patches** to multiple codebases
 
 **DO NOT use for:**
+
 - Single repository changes (use standard git workflow)
 - Changes requiring significant per-repo customization
 - Exploratory refactoring where the exact changes aren't known upfront
@@ -29,6 +30,7 @@ Use this workflow when you need to:
 **What it is:** Open-source campaign management tool for bulk repository operations by Skyscanner
 
 **Features:**
+
 - Clones multiple repos in a workspace
 - Applies changes uniformly via foreach
 - Creates PRs across all repos
@@ -61,6 +63,7 @@ Requires GitHub authentication (uses gh CLI under the hood)
 **What it is:** HPA (Horizontal PR Autoscaler) - batch PR management tool
 
 **Features:**
+
 - Reviews PRs across multiple repos by change ID
 - Approves and merges PRs in bulk
 - Validates CI status before merging
@@ -97,6 +100,7 @@ slam --version
 **What it is:** Official GitHub CLI for repository operations
 
 **Features:**
+
 - Searches for PRs across organization
 - Manages PR states (draft → ready)
 - Checks workflow runs and releases
@@ -423,6 +427,7 @@ slam review ls 'SRE-XXXX'
 ```
 
 This shows:
+
 - All matching PRs across repos
 - Diff of changes for each repo
 - Files modified
