@@ -269,20 +269,19 @@ git diff
 
 ### Phase 1: Test Campaign (2-5 repos)
 
-Initialize a turbolift campaign with test repositories:
+Initialize the main turbolift campaign with test repositories:
 
 ```bash
 cd SRE-XXXX-campaign-name
 
-# Create test repos list
-head -n 2 repos-all.txt > repos-test.txt
+# Create test repos list (start with 2-5 repos)
+head -n 2 repos-all.txt > repos.txt
 
-# Initialize campaign
-turbolift init --name "SRE-XXXX-test"
-cd SRE-XXXX-test
+# Initialize the main campaign (this will be reused for all batches)
+turbolift init --name "SRE-XXXX-campaign-name"
+cd SRE-XXXX-campaign-name
 
-# Copy files
-cp ../repos-test.txt repos.txt
+# Copy transformation script
 cp ../transformation-script.py .
 ```
 
@@ -342,23 +341,19 @@ If any issues found:
 
 ### Phase 2: Small Batch (5-10 repos)
 
-After test campaign succeeds:
+After test campaign succeeds, add more repos to the existing campaign:
 
 ```bash
-cd ..  # Back to SRE-XXXX-campaign-name
+cd ..  # Back to parent directory
+cd SRE-XXXX-campaign-name  # Enter the main campaign directory
 
-# Create small batch list
-sed -n '3,10p' repos-all.txt > repos-batch-1.txt
+# Append next batch of repos to the existing campaign
+sed -n '3,10p' repos-all.txt >> repos.txt
 
-# New campaign for small batch
-turbolift init --name "SRE-XXXX-batch-1"
-cd SRE-XXXX-batch-1
-
-cp ../repos-batch-1.txt repos.txt
-cp ../transformation-script.py .
-
-# Run the campaign (same steps as Phase 1)
+# Clone the newly added repos (turbolift skips already-cloned repos)
 turbolift clone
+
+# Run the campaign on the new repos (same steps as Phase 1)
 turbolift foreach -- python3 ../transformation-script.py
 turbolift foreach -- git diff
 turbolift foreach -- git add -A
@@ -370,18 +365,13 @@ turbolift create-prs --draft
 
 ### Phase 3: Batch Processing (groups of 20-30)
 
-Process remaining repos in manageable batches:
+Process remaining repos in manageable batches by continuing to append to the existing campaign:
 
 ```bash
-cd /path/to/SRE-XXXX-campaign-name
+cd /path/to/SRE-XXXX-campaign-name/SRE-XXXX-campaign-name
 
 # Batch 2 (repos 11-30)
-sed -n '11,30p' repos-all.txt > repos-batch-2.txt
-
-turbolift init --name "SRE-XXXX-batch-2"
-cd SRE-XXXX-batch-2
-cp ../repos-batch-2.txt repos.txt
-cp ../transformation-script.py .
+sed -n '11,30p' ../repos-all.txt >> repos.txt
 
 turbolift clone
 turbolift foreach -- python3 ../transformation-script.py
@@ -390,7 +380,10 @@ turbolift foreach -- git add -A
 turbolift foreach -- 'git commit -m "..."'
 turbolift create-prs --draft
 
-# Repeat for subsequent batches...
+# Repeat for subsequent batches by appending more repos:
+# sed -n '31,50p' ../repos-all.txt >> repos.txt
+# turbolift clone
+# ... (repeat the same steps)
 ```
 
 ### Phase 4: Batch PR Review & Merge with slam
@@ -443,7 +436,9 @@ Verify:
 ##### Single command to approve and merge all PRs
 
 ```bash
-slam review approve "SRE-XXXX: Brief description"
+# Extract the PR title from the campaign's README.md header
+PR_TITLE=$(head -n 1 README.md | sed 's/^# //')
+slam review approve "$PR_TITLE"
 ```
 
 slam automatically:
