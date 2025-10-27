@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Iterable
-
 import yaml
 
 EXCLUDED_DIRS = {"scripts", "docs"}
@@ -36,6 +36,44 @@ def iter_skill_dirs(root: Path) -> Iterable[Path]:
         if path.name in EXCLUDED_DIRS:
             continue
         yield path
+
+
+def filter_gitignored_dirs(
+    dirs: list[Path], root: Path, warnings: list[str]
+) -> list[Path]:
+    """Return directories not ignored by git, appending warnings on failure."""
+    if not dirs:
+        return dirs
+
+    relative_map: dict[str, Path] = {}
+    stdin_lines: list[str] = []
+    for directory in dirs:
+        rel = directory.relative_to(root).as_posix().rstrip("/")
+        relative_map[rel] = directory
+        stdin_lines.append(f"{rel}/")
+
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "--stdin"],
+            input="\n".join(stdin_lines),
+            text=True,
+            capture_output=True,
+            cwd=root,
+        )
+    except FileNotFoundError:
+        warnings.append("⚠️  git executable not found; skipping .gitignore filtering")
+        return dirs
+
+    if result.returncode not in (0, 1):
+        stderr = result.stderr.strip()
+        if stderr:
+            warnings.append(f"⚠️  git check-ignore failed: {stderr}")
+        else:
+            warnings.append("⚠️  git check-ignore failed without message")
+        return dirs
+
+    ignored: set[str] = {line.strip().rstrip("/") for line in result.stdout.splitlines()}
+    return [directory for rel, directory in relative_map.items() if rel not in ignored]
 
 
 def validate_skill(skill_dir: Path, *, errors: list[str], warnings: list[str]) -> None:
@@ -114,6 +152,7 @@ def run(root: Path) -> int:
     warnings: list[str] = []
 
     skill_dirs = list(iter_skill_dirs(root))
+    skill_dirs = filter_gitignored_dirs(skill_dirs, root, warnings)
     if not skill_dirs:
         print("No skill directories found")
         return 0
