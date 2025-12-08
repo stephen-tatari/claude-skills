@@ -51,6 +51,15 @@ LOKI_PF_PID=$!
 sleep 2
 ```
 
+**If port-forward fails or is blocked:** Ask the user to run the port-forward
+command manually in a separate terminal:
+
+```bash
+kubectl port-forward -n loki-system svc/loki-gateway 3100:80
+```
+
+Then continue with the log queries once they confirm it's running.
+
 ### Step 3: Discover Available Labels
 
 Query Loki for available log labels:
@@ -73,18 +82,24 @@ Construct and execute the LogQL query:
 
 ```bash
 # Calculate time range (example: last 1 hour)
-END_TIME=$(date +%s)000000000
-START_TIME=$(date -v-1H +%s)000000000  # macOS
-# START_TIME=$(date -d '1 hour ago' +%s)000000000  # Linux
+# Use arithmetic for shell compatibility (works in bash, zsh, nix shells)
+END_SECS=$(date +%s)
+START_SECS=$((END_SECS - 3600))
 
-# Query logs
+# Query logs and save to temp file (avoids zsh brace parsing issues)
 curl -G -s "http://localhost:3100/loki/api/v1/query_range" \
-  --data-urlencode "query={namespace=\"<namespace>\", app=\"<app>\"}" \
-  --data-urlencode "start=$START_TIME" \
-  --data-urlencode "end=$END_TIME" \
-  --data-urlencode "limit=500" \
-  | jq -r '.data.result[].values[][1]'
+  --data-urlencode 'query={namespace="<namespace>", app="<app>"}' \
+  --data-urlencode "start=${START_SECS}000000000" \
+  --data-urlencode "end=${END_SECS}000000000" \
+  --data-urlencode "limit=500" > /tmp/loki_logs.json
+
+# Parse the results
+jq -r '.data.result[].values[][1]' /tmp/loki_logs.json
 ```
+
+**Important:** Use single quotes around the query parameter to avoid shell escaping
+issues with curly braces. Write output to a temp file before piping to jq to avoid
+zsh parsing errors.
 
 ### Step 5: Analyze Results
 
@@ -99,11 +114,12 @@ To filter for errors only:
 
 ```bash
 curl -G -s "http://localhost:3100/loki/api/v1/query_range" \
-  --data-urlencode "query={namespace=\"<namespace>\", app=\"<app>\"} |~ \"(?i)error|exception|failed\"" \
-  --data-urlencode "start=$START_TIME" \
-  --data-urlencode "end=$END_TIME" \
-  --data-urlencode "limit=500" \
-  | jq -r '.data.result[].values[][1]'
+  --data-urlencode 'query={namespace="<namespace>", app="<app>"} |~ "(?i)error|exception|failed"' \
+  --data-urlencode "start=${START_SECS}000000000" \
+  --data-urlencode "end=${END_SECS}000000000" \
+  --data-urlencode "limit=500" > /tmp/loki_logs.json
+
+jq -r '.data.result[].values[][1]' /tmp/loki_logs.json
 ```
 
 ### Step 6: Iterate and Refine
@@ -177,3 +193,12 @@ kubectl cluster-info
 - Reduce time range
 - Add more specific filters
 - Reduce limit parameter
+
+### Shell parsing errors
+
+If you see `parse error near '('` or similar zsh errors:
+
+- Use single quotes around the LogQL query: `'query={...}'`
+- Write curl output to a temp file before parsing with jq
+- Use arithmetic for time calculations: `$(($(date +%s) - 3600))`
+- Avoid the `-v` flag with `date` (use arithmetic instead)

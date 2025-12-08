@@ -63,36 +63,46 @@ Chain filters:
 
 Loki uses Unix nanoseconds for timestamps.
 
-### macOS
+### Portable (recommended)
+
+Use arithmetic for cross-platform compatibility (works in bash, zsh, nix shells):
 
 ```bash
 # Current time
-date +%s000000000
+END_SECS=$(date +%s)
+echo "${END_SECS}000000000"
 
 # 1 hour ago
+START_SECS=$(($(date +%s) - 3600))
+echo "${START_SECS}000000000"
+
+# 30 minutes ago
+START_SECS=$(($(date +%s) - 1800))
+echo "${START_SECS}000000000"
+
+# 2 hours ago
+START_SECS=$(($(date +%s) - 7200))
+echo "${START_SECS}000000000"
+```
+
+### macOS-specific
+
+```bash
+# 1 hour ago (may not work in all shells)
 date -v-1H +%s000000000
 
 # 30 minutes ago
 date -v-30M +%s000000000
-
-# Specific time
-date -j -f "%Y-%m-%d %H:%M:%S" "2024-01-15 14:30:00" +%s000000000
 ```
 
-### Linux
+### Linux-specific
 
 ```bash
-# Current time
-date +%s000000000
-
 # 1 hour ago
 date -d '1 hour ago' +%s000000000
 
 # 30 minutes ago
 date -d '30 minutes ago' +%s000000000
-
-# Specific time
-date -d "2024-01-15 14:30:00" +%s000000000
 ```
 
 ## API Endpoints
