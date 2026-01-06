@@ -19,15 +19,20 @@ Use this skill when:
 
 ## Pre-flight Check
 
-**Before running any jira command**, ensure jira-cli is configured:
+**Before running any jira command**, validate configuration:
 
 ```bash
-./jira/scripts/setup.sh
+./jira/scripts/setup.sh --validate-only
 ```
 
-If the script exits non-zero, show the error to the user and stop. If it exits 0, proceed with jira commands.
+- Exit 0: Configuration valid, proceed with jira commands
+- Exit non-zero: Show error to user. If interactive session available, run `./jira/scripts/setup.sh` (without flag) to configure
 
-## Context-Efficient Commands
+The `--validate-only` flag prevents interactive prompts that would hang in automation.
+
+## Read-Only Commands (Safe)
+
+These commands only read data and are safe to run without confirmation.
 
 Always use `--plain` and `--columns` flags for searches to minimize token usage:
 
@@ -35,7 +40,7 @@ Always use `--plain` and `--columns` flags for searches to minimize token usage:
 
 ```bash
 # My assigned issues
-jira issue list -a$(jira me) --plain --columns key,summary,status --limit 20
+jira issue list -a"$(jira me)" --plain --columns key,summary,status --limit 20
 
 # Issues in a project
 jira issue list -pPROJ --plain --columns key,summary,status,assignee --limit 20
@@ -57,7 +62,33 @@ jira issue view PROJ-123 --plain
 jira issue view PROJ-123 --plain --comments 5
 ```
 
+### Sprint Information
+
+```bash
+# List sprints in a project
+jira sprint list -pPROJ --plain
+
+# View active sprint details
+jira sprint list -pPROJ --state active --plain
+
+# Issues in current sprint (requires board ID)
+jira issue list --jql "sprint in openSprints() AND project = PROJ" --plain --columns key,summary,status,assignee
+```
+
+### Project Information
+
+```bash
+# List available projects
+jira project list --plain
+```
+
+## Mutating Commands (Require Confirmation)
+
+**IMPORTANT**: Before executing any mutating command, use `AskUserQuestion` to confirm the action with the user. Mutating commands modify Jira data and cannot be easily undone.
+
 ### Create Issues
+
+**Always confirm before creating:**
 
 ```bash
 # Create task
@@ -72,6 +103,8 @@ jira issue create -pPROJ -tBug -s"Bug summary" -yHighest
 
 ### Update Issues
 
+**Always confirm before updating:**
+
 ```bash
 # Transition status
 jira issue move PROJ-123 "In Progress"
@@ -80,6 +113,9 @@ jira issue move PROJ-123 "Done"
 # Assign issue
 jira issue assign PROJ-123 username
 
+# Assign to current user
+jira issue assign PROJ-123 "$(jira me)"
+
 # Add comment
 jira issue comment add PROJ-123 "Comment text here"
 
@@ -87,27 +123,28 @@ jira issue comment add PROJ-123 "Comment text here"
 jira issue edit PROJ-123 -s"New summary"
 ```
 
-### Sprint Information
+### Confirmation Pattern
 
-```bash
-# List sprints
-jira sprint list -pPROJ --plain
+Before any mutating action, prompt the user:
 
-# Issues in active sprint
-jira sprint list -pPROJ --current --plain
+```text
+About to [action] on [ticket]:
+- [details of change]
+
+Proceed? (This will modify Jira data)
 ```
 
 ## Natural Language Mapping
 
-| User Says | Command |
-|-----------|---------|
-| "What are my tickets?" | `jira issue list -a$(jira me) --plain --columns key,summary,status --limit 20` |
-| "Show me PROJ-123" | `jira issue view PROJ-123 --plain` |
-| "Create a task for X" | `jira issue create -pPROJ -tTask -s"X"` |
-| "Move PROJ-123 to in progress" | `jira issue move PROJ-123 "In Progress"` |
-| "What's in the current sprint?" | `jira sprint list -pPROJ --current --plain` |
-| "Add a comment to PROJ-123" | `jira issue comment add PROJ-123 "comment"` |
-| "Assign PROJ-123 to me" | `jira issue assign PROJ-123 $(jira me)` |
+| User Says | Command | Requires Confirmation |
+|-----------|---------|----------------------|
+| "What are my tickets?" | `jira issue list -a"$(jira me)" --plain --columns key,summary,status --limit 20` | No |
+| "Show me PROJ-123" | `jira issue view PROJ-123 --plain` | No |
+| "Create a task for X" | `jira issue create -pPROJ -tTask -s"X"` | **Yes** |
+| "Move PROJ-123 to in progress" | `jira issue move PROJ-123 "In Progress"` | **Yes** |
+| "What's in the current sprint?" | `jira issue list --jql "sprint in openSprints() AND project = PROJ" --plain --columns key,summary,status` | No |
+| "Add a comment to PROJ-123" | `jira issue comment add PROJ-123 "comment"` | **Yes** |
+| "Assign PROJ-123 to me" | `jira issue assign PROJ-123 "$(jira me)"` | **Yes** |
 
 ## Tips
 
@@ -115,15 +152,29 @@ jira sprint list -pPROJ --current --plain
 - **Limit results**: Use `--limit 20` for searches
 - **Specify columns**: `--columns key,summary,status` returns only needed fields
 - **JQL for complex queries**: `--jql` supports full Jira Query Language
+- **Quote substitutions**: Always use `"$(jira me)"` with quotes to handle special characters
+
+## Headless/CI Configuration
+
+For non-interactive environments, set these environment variables before running setup:
+
+```bash
+export JIRA_BASE_URL="https://yourcompany.atlassian.net"
+export JIRA_LOGIN="your.email@company.com"
+export JIRA_API_TOKEN="your-api-token"
+export JIRA_AUTH_TYPE="bearer"  # or "basic"
+export JIRA_PROJECT="PROJ"      # optional: default project
+./jira/scripts/setup.sh
+```
 
 ## Troubleshooting
 
 ### Authentication errors
 
-Re-run setup to reconfigure:
+Move old config and re-run setup:
 
 ```bash
-rm -f ~/.config/.jira/.config.yml
+mkdir -p TRASH && mv ~/.config/.jira/.config.yml TRASH/jira-config-backup.yml
 ./jira/scripts/setup.sh
 ```
 
@@ -142,3 +193,17 @@ List available transitions for an issue:
 ```bash
 jira issue view PROJ-123 --plain | grep -A10 "Transitions"
 ```
+
+### Validation fails but config exists
+
+Check the specific error:
+
+```bash
+jira me
+```
+
+Common causes:
+
+- API token expired (regenerate at Atlassian)
+- Network connectivity issues
+- Server URL changed
