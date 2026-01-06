@@ -172,6 +172,7 @@ jira init
 ```
 
 To update an existing token:
+
 ```bash
 security delete-generic-password -s "jira-cli"
 security add-generic-password -a "your.email@company.com" -s "jira-cli" -w "new-token"
