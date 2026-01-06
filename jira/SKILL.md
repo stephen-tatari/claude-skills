@@ -42,16 +42,19 @@ Always use `--plain` and `--columns` flags for searches to minimize token usage:
 
 ```bash
 # My assigned issues
-jira issue list -a"$(jira me)" --plain --columns key,summary,status --limit 20
+jira issue list -a"$(jira me)" --plain --columns key,summary,status --paginate 20
 
 # Issues in a project
-jira issue list -pPROJ --plain --columns key,summary,status,assignee --limit 20
+jira issue list -pPROJ --plain --columns key,summary,status,assignee --paginate 20
 
 # Custom JQL query
 jira issue list --jql "project = PROJ AND status = 'In Progress'" --plain --columns key,summary,status
 
-# Issues updated recently
-jira issue list --jql "updated >= -7d ORDER BY updated DESC" --plain --columns key,summary,status --limit 20
+# Issues updated recently (use --order-by flag, NOT ORDER BY in JQL)
+jira issue list --jql "updated >= -7d" --order-by updated --plain --columns key,summary,status --paginate 20
+
+# Issues with date range (JQL dates use yyyy-mm-dd format)
+jira issue list -pPROJ --jql "project = PROJ AND created >= 2025-07-01" --plain --columns key,summary,status,assignee --paginate 50
 ```
 
 ### View Issue Details
@@ -80,8 +83,11 @@ jira issue list --jql "sprint in openSprints() AND project = PROJ" --plain --col
 ### Project Information
 
 ```bash
-# List available projects
-jira project list --plain
+# List available projects (note: --plain not supported for project list)
+jira project list
+
+# Filter projects by name
+jira project list | grep -i "search-term"
 ```
 
 ## Mutating Commands (Require Confirmation)
@@ -140,21 +146,24 @@ Proceed? (This will modify Jira data)
 
 | User Says | Command | Requires Confirmation |
 |-----------|---------|----------------------|
-| "What are my tickets?" | `jira issue list -a"$(jira me)" --plain --columns key,summary,status --limit 20` | No |
+| "What are my tickets?" | `jira issue list -a"$(jira me)" --plain --columns key,summary,status --paginate 20` | No |
 | "Show me PROJ-123" | `jira issue view PROJ-123 --plain` | No |
 | "Create a task for X" | `jira issue create -pPROJ -tTask -s"X"` | **Yes** |
 | "Move PROJ-123 to in progress" | `jira issue move PROJ-123 "In Progress"` | **Yes** |
 | "What's in the current sprint?" | `jira issue list --jql "sprint in openSprints() AND project = PROJ" --plain --columns key,summary,status` | No |
 | "Add a comment to PROJ-123" | `jira issue comment add PROJ-123 "comment"` | **Yes** |
 | "Assign PROJ-123 to me" | `jira issue assign PROJ-123 "$(jira me)"` | **Yes** |
+| "What have I worked on since July?" | `jira issue list -pPROJ --jql "project = PROJ AND assignee was currentUser() AND created >= 2025-07-01" --plain --columns key,summary,status --paginate 50` | No |
 
 ## Tips
 
-- **Always use `--plain`**: Reduces output tokens by 95%+
-- **Limit results**: Use `--limit 20` for searches
+- **Always use `--plain`**: Reduces output tokens by 95%+ (note: not supported for `project list`)
+- **Limit results**: Use `--paginate 20` for searches (not `--limit`)
 - **Specify columns**: `--columns key,summary,status` returns only needed fields
-- **JQL for complex queries**: `--jql` supports full Jira Query Language
+- **JQL for complex queries**: `--jql` supports Jira Query Language, but do NOT include `ORDER BY` in JQL string
+- **Ordering results**: Use `--order-by fieldname` flag instead of `ORDER BY` in JQL
 - **Quote substitutions**: Always use `"$(jira me)"` with quotes to handle special characters
+- **Date formats in JQL**: Use `yyyy-mm-dd` format (e.g., `created >= 2025-07-01`)
 
 ## Configuration
 
@@ -201,7 +210,19 @@ jira init
 List available projects:
 
 ```bash
-jira project list --plain
+jira project list
+```
+
+### JQL ORDER BY error
+
+If you get `Expecting ',' but got 'ORDER'` error, do NOT include `ORDER BY` in the JQL string. Use the `--order-by` flag instead:
+
+```bash
+# Wrong - causes error
+jira issue list --jql "project = PROJ ORDER BY updated DESC"
+
+# Correct - use --order-by flag
+jira issue list --jql "project = PROJ" --order-by updated
 ```
 
 ### Invalid transition
