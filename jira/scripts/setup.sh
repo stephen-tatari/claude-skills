@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Jira CLI setup helper - idempotent, safe to run multiple times
-# Supports both interactive and headless (env var) configuration
+# Uses macOS Keychain for secure token storage
 
 set -euo pipefail
 
-CONFIG_FILE="$HOME/.config/jira/config.yaml"
 API_TOKEN_URL="https://id.atlassian.com/manage-profile/security/api-tokens"
+KEYCHAIN_SERVICE="jira-cli"
 
 # Parse arguments
 VALIDATE_ONLY=false
@@ -27,12 +27,27 @@ done
 if ! command -v jira &>/dev/null; then
     echo "Error: jira-cli is not installed."
     echo ""
-    echo "Install with:"
-    echo "  brew install ankitpokhrel/jira-cli/jira-cli"
-    echo ""
-    echo "Or:"
-    echo "  go install github.com/ankitpokhrel/jira-cli/cmd/jira@latest"
-    exit 1
+
+    # Check if we can auto-install
+    if [[ "$VALIDATE_ONLY" != "true" ]] && [[ -t 0 ]] && command -v brew &>/dev/null; then
+        echo "Would you like to install it now via Homebrew? [y/N]"
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            echo "Installing jira-cli..."
+            brew install ankitpokhrel/jira-cli/jira-cli
+            echo "Installation complete."
+        else
+            echo "Skipping installation."
+            exit 1
+        fi
+    else
+        echo "Install with:"
+        echo "  brew install ankitpokhrel/jira-cli/jira-cli"
+        echo ""
+        echo "Or:"
+        echo "  go install github.com/ankitpokhrel/jira-cli/cmd/jira@latest"
+        exit 1
+    fi
 fi
 
 # Validate existing configuration
@@ -50,16 +65,8 @@ validate_config() {
 }
 
 # Check if already configured and valid
-if [[ -f "$CONFIG_FILE" ]]; then
-    echo "jira-cli config found at $CONFIG_FILE"
-    if validate_config; then
-        exit 0
-    fi
-    if [[ "$VALIDATE_ONLY" == "true" ]]; then
-        echo "Config exists but validation failed. Run setup.sh without --validate-only to reconfigure."
-        exit 1
-    fi
-    echo "Re-running setup..."
+if validate_config 2>/dev/null; then
+    exit 0
 fi
 
 # In validate-only mode, exit if no valid config
@@ -68,46 +75,20 @@ if [[ "$VALIDATE_ONLY" == "true" ]]; then
     exit 1
 fi
 
-# Check for headless configuration via environment variables
-if [[ -n "${JIRA_API_TOKEN:-}" && -n "${JIRA_BASE_URL:-}" && -n "${JIRA_AUTH_TYPE:-}" ]]; then
-    echo "Configuring jira-cli from environment variables..."
-    mkdir -p "$(dirname "$CONFIG_FILE")"
-
-    # Create config file from env vars
-    cat > "$CONFIG_FILE" <<EOF
-server: ${JIRA_BASE_URL}
-login: ${JIRA_LOGIN:-}
-project: ${JIRA_PROJECT:-}
-board: ${JIRA_BOARD:-}
-installation: cloud
-authentication:
-  type: ${JIRA_AUTH_TYPE}
-  login: ${JIRA_LOGIN:-}
-  token: ${JIRA_API_TOKEN}
-EOF
-
-    echo "Config written. Validating..."
-    if validate_config; then
-        exit 0
-    else
-        echo "Error: Environment-based configuration failed validation."
-        exit 1
-    fi
-fi
+# Check if token exists in keychain
+check_keychain_token() {
+    security find-generic-password -s "$KEYCHAIN_SERVICE" &>/dev/null
+}
 
 # Interactive setup
 echo "Setting up jira-cli..."
 echo ""
-echo "You'll need an Atlassian API token."
+echo "You'll need an Atlassian API token stored in macOS Keychain."
 
 # Try to open browser, but don't fail if it doesn't work
 browser_opened=false
 if command -v open &>/dev/null; then
     if open "$API_TOKEN_URL" 2>/dev/null; then
-        browser_opened=true
-    fi
-elif command -v xdg-open &>/dev/null; then
-    if xdg-open "$API_TOKEN_URL" 2>/dev/null; then
         browser_opened=true
     fi
 fi
@@ -120,15 +101,39 @@ else
     echo "  $API_TOKEN_URL"
 fi
 
-sleep 2
 echo ""
-echo "Create a new API token, then run 'jira init' and enter:"
-echo "  - Your Jira server URL (e.g., https://yourcompany.atlassian.net)"
-echo "  - Your email address"
-echo "  - The API token you just created"
+echo "Setup Steps:"
+echo "  1. Create API token (label: 'jira-cli')"
+echo "  2. Store in keychain:"
+echo "     security add-generic-password -a 'your.email@company.com' -s 'jira-cli' -w 'your-token'"
+echo "  3. Run: jira init"
+echo "     - Installation type: Cloud"
+echo "     - Server URL: https://yourcompany.atlassian.net"
+echo "     - Login email: your Atlassian account email"
 echo ""
 
-# Run jira init (interactive)
+# Non-interactive context - exit with instructions
+if [[ ! -t 0 ]]; then
+    echo "=============================================="
+    echo "ACTION REQUIRED (run in your terminal)"
+    echo "=============================================="
+    echo "1. security add-generic-password -a 'your.email' -s 'jira-cli' -w 'your-token'"
+    echo "2. jira init"
+    echo ""
+    echo "Then re-run this script to validate."
+    exit 2
+fi
+
+# Interactive - check for keychain token
+if ! check_keychain_token; then
+    echo "ERROR: No token found in keychain."
+    echo ""
+    echo "Add your token first:"
+    echo "  security add-generic-password -a 'your.email@company.com' -s 'jira-cli' -w 'your-token'"
+    exit 1
+fi
+
+echo "Token found in keychain. Running jira init..."
 jira init
 
 # Validate setup

@@ -1,6 +1,6 @@
 ---
 name: jira
-description: Manage Jira tickets via CLI - search issues, view details, create tickets, update status, and add comments. Use when user mentions ticket IDs (PROJ-123), asks about their tasks, or wants to interact with Jira.
+description: Manage Jira tickets via CLI - search issues, view details, create tickets, update status, and add comments. Use when user mentions ticket IDs (PROJ-123), asks about their tasks, work history, accomplishments, or wants to interact with Jira.
 ---
 
 # Jira Skill
@@ -15,6 +15,8 @@ Use this skill when:
 - User asks about their assigned tickets or tasks
 - User wants to create, update, or comment on Jira issues
 - User asks about sprint or project status
+- User asks about their work history or accomplishments
+- User wants to review completed work
 - Keywords: jira, ticket, issue, sprint, backlog, assigned to me
 
 ## Pre-flight Check
@@ -22,11 +24,11 @@ Use this skill when:
 **Before running any jira command**, validate configuration:
 
 ```bash
-./jira/scripts/setup.sh --validate-only
+./scripts/setup.sh --validate-only
 ```
 
 - Exit 0: Configuration valid, proceed with jira commands
-- Exit non-zero: Show error to user. If interactive session available, run `./jira/scripts/setup.sh` (without flag) to configure
+- Exit non-zero: Show error to user. If interactive session available, run `./scripts/setup.sh` (without flag) to configure
 
 The `--validate-only` flag prevents interactive prompts that would hang in automation.
 
@@ -154,28 +156,44 @@ Proceed? (This will modify Jira data)
 - **JQL for complex queries**: `--jql` supports full Jira Query Language
 - **Quote substitutions**: Always use `"$(jira me)"` with quotes to handle special characters
 
-## Headless/CI Configuration
+## Configuration
 
-For non-interactive environments, set these environment variables before running setup:
+jira-cli uses macOS Keychain for secure token storage.
 
 ```bash
-export JIRA_BASE_URL="https://yourcompany.atlassian.net"
-export JIRA_LOGIN="your.email@company.com"
-export JIRA_API_TOKEN="your-api-token"
-export JIRA_AUTH_TYPE="bearer"  # or "basic"
-export JIRA_PROJECT="PROJ"      # optional: default project
-./jira/scripts/setup.sh
+# 1. Get an API token from https://id.atlassian.com/manage-profile/security/api-tokens
+
+# 2. Store token in macOS Keychain
+security add-generic-password -a "your.email@company.com" -s "jira-cli" -w "your-api-token"
+
+# 3. Run jira init (token is read from keychain automatically)
+jira init
+# Select: Cloud, your server URL, your email
+```
+
+To update an existing token:
+
+```bash
+security delete-generic-password -s "jira-cli"
+security add-generic-password -a "your.email@company.com" -s "jira-cli" -w "new-token"
 ```
 
 ## Troubleshooting
 
 ### Authentication errors
 
-Move old config and re-run setup:
+Reset keychain entry and config:
 
 ```bash
-mkdir -p TRASH && mv ~/.config/jira/config.yaml TRASH/jira-config-backup.yaml
-./jira/scripts/setup.sh
+# Remove old keychain entry
+security delete-generic-password -s "jira-cli" 2>/dev/null
+
+# Add fresh token
+security add-generic-password -a "your.email@company.com" -s "jira-cli" -w "your-new-token"
+
+# Remove old config and reinitialize
+mkdir -p TRASH && mv ~/.config/.jira/.config.yml TRASH/jira-config-backup.yml
+jira init
 ```
 
 ### Unknown project
