@@ -58,7 +58,15 @@ acli jira workitem search --jql "project = PROJ AND created >= 2025-07-01" --fie
 
 # Get all results with pagination
 acli jira workitem search --jql "project = PROJ" --fields key,summary,status --paginate
+
+# Filter by resolution/dates in JQL (filtering works, display limited to defaults)
+acli jira workitem search --jql "project = PROJ AND resolution = Done AND created >= 2025-07-01" --fields key,summary,status
+
+# Get full details including dates for specific issues
+acli jira workitem view PROJ-123 --fields created,updated,resolution,resolutiondate --json
 ```
+
+**Important:** The `--fields` flag for searches only supports default fields: `issuetype`, `key`, `assignee`, `priority`, `status`, `summary`. To filter by other fields (resolution, created, updated), use JQL. To display additional fields, use `workitem view`.
 
 ### View Issue Details
 
@@ -75,6 +83,11 @@ acli jira workitem view PROJ-123 --fields key,summary,status,description,comment
 # JSON output for parsing
 acli jira workitem view PROJ-123 --json
 ```
+
+**Special field values for view:**
+- `"*all"` - returns all fields (created, updated, resolution, custom fields, etc.)
+- `"*navigable"` - returns navigable fields
+- Prefix with `-` to exclude fields (e.g., `"*all,-comment"`)
 
 ### Sprint Information
 
@@ -184,6 +197,7 @@ Proceed? (This will modify Jira data)
 - **JQL for complex queries**: `--jql` supports full Jira Query Language
 - **Pagination**: Use `--limit N` to cap results, `--paginate` for all results
 - **Bulk operations**: Most commands support `--jql` or `--filter` for batch actions
+- **Getting dates/resolution**: Search can filter by any JQL field but only displays defaults. Use `view --fields "*all"` for created, updated, resolution, etc.
 
 ## Configuration
 
@@ -241,6 +255,13 @@ acli jira workitem view PROJ-123 --fields status
 ```bash
 acli jira board search
 ```
+
+### Field not allowed in search
+
+Search only displays default fields (`issuetype`, `key`, `assignee`, `priority`, `status`, `summary`). For additional field data:
+
+1. Use JQL to filter: `--jql "resolution = Done AND created >= 2025-01-01"`
+2. Get details via view: `acli jira workitem view PROJ-123 --fields "*all" --json`
 
 ### API Token Authentication (headless/CI only)
 
