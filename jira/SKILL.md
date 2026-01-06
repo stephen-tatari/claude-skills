@@ -174,7 +174,7 @@ export JIRA_PROJECT="PROJ"      # optional: default project
 Move old config and re-run setup:
 
 ```bash
-mkdir -p TRASH && mv ~/.config/.jira/.config.yml TRASH/jira-config-backup.yml
+mkdir -p TRASH && mv ~/.config/jira/config.yaml TRASH/jira-config-backup.yaml
 ./jira/scripts/setup.sh
 ```
 

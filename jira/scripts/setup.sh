@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-CONFIG_FILE="$HOME/.config/.jira/.config.yml"
+CONFIG_FILE="$HOME/.config/jira/config.yaml"
 API_TOKEN_URL="https://id.atlassian.com/manage-profile/security/api-tokens"
 
 # Parse arguments
