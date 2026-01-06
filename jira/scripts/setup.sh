@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-# Jira CLI setup helper - idempotent, safe to run multiple times
-# Uses macOS Keychain for secure token storage
+# Atlassian CLI (ACLI) setup helper - idempotent, safe to run multiple times
+# Uses OAuth for authentication (browser-based)
 
 set -euo pipefail
-
-API_TOKEN_URL="https://id.atlassian.com/manage-profile/security/api-tokens"
-KEYCHAIN_SERVICE="jira-cli"
 
 # Parse arguments
 VALIDATE_ONLY=false
@@ -23,9 +20,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if jira-cli is installed
-if ! command -v jira &>/dev/null; then
-    echo "Error: jira-cli is not installed."
+# Check if acli is installed
+if ! command -v acli &>/dev/null; then
+    echo "Error: Atlassian CLI (acli) is not installed."
     echo ""
 
     # Check if we can auto-install
@@ -33,19 +30,21 @@ if ! command -v jira &>/dev/null; then
         echo "Would you like to install it now via Homebrew? [y/N]"
         read -r response
         if [[ "$response" =~ ^[Yy]$ ]]; then
-            echo "Installing jira-cli..."
-            brew install ankitpokhrel/jira-cli/jira-cli
+            echo "Installing Atlassian CLI..."
+            brew tap atlassian/homebrew-acli
+            brew install acli
             echo "Installation complete."
         else
             echo "Skipping installation."
             exit 1
         fi
     else
-        echo "Install with:"
-        echo "  brew install ankitpokhrel/jira-cli/jira-cli"
+        echo "Install with Homebrew:"
+        echo "  brew tap atlassian/homebrew-acli"
+        echo "  brew install acli"
         echo ""
-        echo "Or:"
-        echo "  go install github.com/ankitpokhrel/jira-cli/cmd/jira@latest"
+        echo "Or download manually from:"
+        echo "  https://developer.atlassian.com/cloud/acli/guides/install-macos/"
         exit 1
     fi
 fi
@@ -54,8 +53,8 @@ fi
 validate_config() {
     local output
     local exit_code
-    output=$(jira me 2>&1) && exit_code=0 || exit_code=$?
-    if [[ $exit_code -eq 0 ]]; then
+    output=$(acli jira auth status 2>&1) && exit_code=0 || exit_code=$?
+    if [[ $exit_code -eq 0 ]] && [[ ! "$output" =~ "not logged in" ]]; then
         echo "Configuration validated successfully."
         return 0
     else
@@ -75,72 +74,33 @@ if [[ "$VALIDATE_ONLY" == "true" ]]; then
     exit 1
 fi
 
-# Check if token exists in keychain
-check_keychain_token() {
-    security find-generic-password -s "$KEYCHAIN_SERVICE" &>/dev/null
-}
-
-# Interactive setup
-echo "Setting up jira-cli..."
-echo ""
-echo "You'll need an Atlassian API token stored in macOS Keychain."
-
-# Try to open browser, but don't fail if it doesn't work
-browser_opened=false
-if command -v open &>/dev/null; then
-    if open "$API_TOKEN_URL" 2>/dev/null; then
-        browser_opened=true
-    fi
-fi
-
-if [[ "$browser_opened" == "true" ]]; then
-    echo "Opening token management page in your browser..."
-else
-    echo ""
-    echo "Please open this URL to create an API token:"
-    echo "  $API_TOKEN_URL"
-fi
-
-echo ""
-echo "Setup Steps:"
-echo "  1. Create API token (label: 'jira-cli')"
-echo "  2. Store in keychain:"
-echo "     security add-generic-password -a 'your.email@company.com' -s 'jira-cli' -w 'your-token'"
-echo "  3. Run: jira init"
-echo "     - Installation type: Cloud"
-echo "     - Server URL: https://yourcompany.atlassian.net"
-echo "     - Login email: your Atlassian account email"
-echo ""
-
 # Non-interactive context - exit with instructions
 if [[ ! -t 0 ]]; then
     echo "=============================================="
     echo "ACTION REQUIRED (run in your terminal)"
     echo "=============================================="
-    echo "1. security add-generic-password -a 'your.email' -s 'jira-cli' -w 'your-token'"
-    echo "2. jira init"
+    echo "Authenticate with Jira using OAuth:"
+    echo "  acli jira auth login --web"
     echo ""
+    echo "This will open your browser for secure authentication."
     echo "Then re-run this script to validate."
     exit 2
 fi
 
-# Interactive - check for keychain token
-if ! check_keychain_token; then
-    echo "ERROR: No token found in keychain."
-    echo ""
-    echo "Add your token first:"
-    echo "  security add-generic-password -a 'your.email@company.com' -s 'jira-cli' -w 'your-token'"
-    exit 1
-fi
+# Interactive setup with OAuth
+echo "Setting up Atlassian CLI for Jira..."
+echo ""
+echo "This will open your browser for OAuth authentication."
+echo "Press Enter to continue..."
+read -r
 
-echo "Token found in keychain. Running jira init..."
-jira init
+acli jira auth login --web
 
 # Validate setup
 echo ""
 echo "Validating setup..."
 if validate_config; then
-    echo "Setup complete! jira-cli is ready to use."
+    echo "Setup complete! Atlassian CLI is ready to use."
     exit 0
 else
     echo "Error: Setup validation failed. Please try again."

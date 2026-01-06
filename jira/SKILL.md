@@ -5,7 +5,7 @@ description: Manage Jira tickets via CLI - search issues, view details, create t
 
 # Jira Skill
 
-Interact with Jira using the lightweight jira-cli tool for context-efficient ticket management.
+Interact with Jira using Atlassian CLI (ACLI) for context-efficient ticket management.
 
 ## When to Use
 
@@ -21,14 +21,14 @@ Use this skill when:
 
 ## Pre-flight Check
 
-**Before running any jira command**, validate configuration:
+**Before running any acli command**, validate configuration:
 
 ```bash
 ./scripts/setup.sh --validate-only
 ```
 
-- Exit 0: Configuration valid, proceed with jira commands
-- Exit non-zero: Show error to user. If interactive session available, run `./scripts/setup.sh` (without flag) to configure
+- Exit 0: Configuration valid, proceed with acli commands
+- Exit non-zero: Show error to user. If interactive session available, run `./scripts/setup.sh` (without flag) to configure via OAuth
 
 The `--validate-only` flag prevents interactive prompts that would hang in automation.
 
@@ -36,58 +36,73 @@ The `--validate-only` flag prevents interactive prompts that would hang in autom
 
 These commands only read data and are safe to run without confirmation.
 
-Always use `--plain` and `--columns` flags for searches to minimize token usage:
+Use `--fields` flag for searches to minimize token usage:
 
 ### Search Issues
 
 ```bash
 # My assigned issues
-jira issue list -a"$(jira me)" --plain --columns key,summary,status --paginate 20
+acli jira workitem search --jql "assignee = currentUser()" --fields key,summary,status --limit 20
 
 # Issues in a project
-jira issue list -pPROJ --plain --columns key,summary,status,assignee --paginate 20
+acli jira workitem search --jql "project = PROJ" --fields key,summary,status,assignee --limit 20
 
 # Custom JQL query
-jira issue list --jql "project = PROJ AND status = 'In Progress'" --plain --columns key,summary,status
+acli jira workitem search --jql "project = PROJ AND status = 'In Progress'" --fields key,summary,status
 
-# Issues updated recently (use --order-by flag, NOT ORDER BY in JQL)
-jira issue list --jql "updated >= -7d" --order-by updated --plain --columns key,summary,status --paginate 20
+# Issues updated recently
+acli jira workitem search --jql "updated >= -7d" --fields key,summary,status --limit 20
 
 # Issues with date range (JQL dates use yyyy-mm-dd format)
-jira issue list -pPROJ --jql "project = PROJ AND created >= 2025-07-01" --plain --columns key,summary,status,assignee --paginate 50
+acli jira workitem search --jql "project = PROJ AND created >= 2025-07-01" --fields key,summary,status,assignee --limit 50
+
+# Get all results with pagination
+acli jira workitem search --jql "project = PROJ" --fields key,summary,status --paginate
 ```
 
 ### View Issue Details
 
 ```bash
-# View single issue (full details)
-jira issue view PROJ-123 --plain
+# View single issue (default fields)
+acli jira workitem view PROJ-123
 
-# View with comments
-jira issue view PROJ-123 --plain --comments 5
+# View with all fields
+acli jira workitem view PROJ-123 --fields "*all"
+
+# View specific fields only
+acli jira workitem view PROJ-123 --fields key,summary,status,description,comment
+
+# JSON output for parsing
+acli jira workitem view PROJ-123 --json
 ```
 
 ### Sprint Information
 
 ```bash
-# List sprints in a project
-jira sprint list -pPROJ --plain
+# List sprints for a board (requires board ID)
+acli jira board list-sprints --id <board-id>
 
-# View active sprint details
-jira sprint list -pPROJ --state active --plain
+# Active sprints only
+acli jira board list-sprints --id <board-id> --state active
 
-# Issues in current sprint (requires board ID)
-jira issue list --jql "sprint in openSprints() AND project = PROJ" --plain --columns key,summary,status,assignee
+# Find boards
+acli jira board search
+
+# Issues in current sprint
+acli jira workitem search --jql "sprint in openSprints() AND project = PROJ" --fields key,summary,status,assignee
 ```
 
 ### Project Information
 
 ```bash
-# List available projects (note: --plain not supported for project list)
-jira project list
+# List available projects
+acli jira project list
 
-# Filter projects by name
-jira project list | grep -i "search-term"
+# Recent projects
+acli jira project list --recent
+
+# JSON output
+acli jira project list --json
 ```
 
 ## Mutating Commands (Require Confirmation)
@@ -100,13 +115,16 @@ jira project list | grep -i "search-term"
 
 ```bash
 # Create task
-jira issue create -pPROJ -tTask -s"Summary text" -yHigh
+acli jira workitem create --project PROJ --type Task --summary "Summary text"
 
 # Create with description
-jira issue create -pPROJ -tTask -s"Summary" -b"Description body"
+acli jira workitem create --project PROJ --type Task --summary "Summary" --description "Description body"
 
-# Create bug
-jira issue create -pPROJ -tBug -s"Bug summary" -yHighest
+# Create bug assigned to self
+acli jira workitem create --project PROJ --type Bug --summary "Bug summary" --assignee "@me"
+
+# Create with labels
+acli jira workitem create --project PROJ --type Task --summary "Summary" --label "bug,urgent"
 ```
 
 ### Update Issues
@@ -115,20 +133,23 @@ jira issue create -pPROJ -tBug -s"Bug summary" -yHighest
 
 ```bash
 # Transition status
-jira issue move PROJ-123 "In Progress"
-jira issue move PROJ-123 "Done"
+acli jira workitem transition --key "PROJ-123" --status "In Progress"
+acli jira workitem transition --key "PROJ-123" --status "Done"
 
 # Assign issue
-jira issue assign PROJ-123 username
+acli jira workitem assign --key "PROJ-123" --assignee "user@company.com"
 
 # Assign to current user
-jira issue assign PROJ-123 "$(jira me)"
+acli jira workitem assign --key "PROJ-123" --assignee "@me"
 
 # Add comment
-jira issue comment add PROJ-123 "Comment text here"
+acli jira workitem comment create --key "PROJ-123" --body "Comment text here"
 
 # Edit summary
-jira issue edit PROJ-123 -s"New summary"
+acli jira workitem edit --key "PROJ-123" --summary "New summary"
+
+# Bulk transition via JQL
+acli jira workitem transition --jql "project = PROJ AND status = 'To Do'" --status "In Progress" --yes
 ```
 
 ### Confirmation Pattern
@@ -146,63 +167,57 @@ Proceed? (This will modify Jira data)
 
 | User Says | Command | Requires Confirmation |
 |-----------|---------|----------------------|
-| "What are my tickets?" | `jira issue list -a"$(jira me)" --plain --columns key,summary,status --paginate 20` | No |
-| "Show me PROJ-123" | `jira issue view PROJ-123 --plain` | No |
-| "Create a task for X" | `jira issue create -pPROJ -tTask -s"X"` | **Yes** |
-| "Move PROJ-123 to in progress" | `jira issue move PROJ-123 "In Progress"` | **Yes** |
-| "What's in the current sprint?" | `jira issue list --jql "sprint in openSprints() AND project = PROJ" --plain --columns key,summary,status` | No |
-| "Add a comment to PROJ-123" | `jira issue comment add PROJ-123 "comment"` | **Yes** |
-| "Assign PROJ-123 to me" | `jira issue assign PROJ-123 "$(jira me)"` | **Yes** |
-| "What have I worked on since July?" | `jira issue list -pPROJ --jql "project = PROJ AND assignee was currentUser() AND created >= 2025-07-01" --plain --columns key,summary,status --paginate 50` | No |
+| "What are my tickets?" | `acli jira workitem search --jql "assignee = currentUser()" --fields key,summary,status --limit 20` | No |
+| "Show me PROJ-123" | `acli jira workitem view PROJ-123` | No |
+| "Create a task for X" | `acli jira workitem create --project PROJ --type Task --summary "X"` | **Yes** |
+| "Move PROJ-123 to in progress" | `acli jira workitem transition --key "PROJ-123" --status "In Progress"` | **Yes** |
+| "What's in the current sprint?" | `acli jira workitem search --jql "sprint in openSprints() AND project = PROJ" --fields key,summary,status` | No |
+| "Add a comment to PROJ-123" | `acli jira workitem comment create --key "PROJ-123" --body "comment"` | **Yes** |
+| "Assign PROJ-123 to me" | `acli jira workitem assign --key "PROJ-123" --assignee "@me"` | **Yes** |
+| "What have I worked on since July?" | `acli jira workitem search --jql "assignee was currentUser() AND created >= 2025-07-01" --fields key,summary,status --limit 50` | No |
 
 ## Tips
 
-- **Always use `--plain`**: Reduces output tokens by 95%+ (note: not supported for `project list`)
-- **Limit results**: Use `--paginate 20` for searches (not `--limit`)
-- **Specify columns**: `--columns key,summary,status` returns only needed fields
-- **JQL for complex queries**: `--jql` supports Jira Query Language, but do NOT include `ORDER BY` in JQL string
-- **Ordering results**: Use `--order-by fieldname` flag instead of `ORDER BY` in JQL
-- **Quote substitutions**: Always use `"$(jira me)"` with quotes to handle special characters
-- **Date formats in JQL**: Use `yyyy-mm-dd` format (e.g., `created >= 2025-07-01`)
+- **Use `--fields` to limit output**: `--fields key,summary,status` returns only needed fields
+- **Use `--json` for structured output**: Machine-readable, easy to parse
+- **Use `@me` for self-assignment**: No need for subshell commands
+- **JQL for complex queries**: `--jql` supports full Jira Query Language
+- **Pagination**: Use `--limit N` to cap results, `--paginate` for all results
+- **Bulk operations**: Most commands support `--jql` or `--filter` for batch actions
 
 ## Configuration
 
-jira-cli uses macOS Keychain for secure token storage.
+Atlassian CLI uses OAuth for secure authentication.
 
 ```bash
-# 1. Get an API token from https://id.atlassian.com/manage-profile/security/api-tokens
+# Authenticate via browser (recommended)
+acli jira auth login --web
 
-# 2. Store token in macOS Keychain
-security add-generic-password -a "your.email@company.com" -s "jira-cli" -w "your-api-token"
+# Check authentication status
+acli jira auth status
 
-# 3. Run jira init (token is read from keychain automatically)
-jira init
-# Select: Cloud, your server URL, your email
-```
+# Switch between accounts
+acli jira auth switch
 
-To update an existing token:
-
-```bash
-security delete-generic-password -s "jira-cli"
-security add-generic-password -a "your.email@company.com" -s "jira-cli" -w "new-token"
+# Log out
+acli jira auth logout
 ```
 
 ## Troubleshooting
 
 ### Authentication errors
 
-Reset keychain entry and config:
+Re-authenticate with OAuth:
 
 ```bash
-# Remove old keychain entry
-security delete-generic-password -s "jira-cli" 2>/dev/null
+acli jira auth logout
+acli jira auth login --web
+```
 
-# Add fresh token
-security add-generic-password -a "your.email@company.com" -s "jira-cli" -w "your-new-token"
+### Check auth status
 
-# Remove old config and reinitialize
-mkdir -p TRASH && mv ~/.config/.jira/.config.yml TRASH/jira-config-backup.yml
-jira init
+```bash
+acli jira auth status
 ```
 
 ### Unknown project
@@ -210,39 +225,31 @@ jira init
 List available projects:
 
 ```bash
-jira project list
-```
-
-### JQL ORDER BY error
-
-If you get `Expecting ',' but got 'ORDER'` error, do NOT include `ORDER BY` in the JQL string. Use the `--order-by` flag instead:
-
-```bash
-# Wrong - causes error
-jira issue list --jql "project = PROJ ORDER BY updated DESC"
-
-# Correct - use --order-by flag
-jira issue list --jql "project = PROJ" --order-by updated
+acli jira project list
 ```
 
 ### Invalid transition
 
-List available transitions for an issue:
+Check available transitions by viewing the issue:
 
 ```bash
-jira issue view PROJ-123 --plain | grep -A10 "Transitions"
+acli jira workitem view PROJ-123 --fields status
 ```
 
-### Validation fails but config exists
-
-Check the specific error:
+### Find board ID for sprints
 
 ```bash
-jira me
+acli jira board search
 ```
 
-Common causes:
+### API Token Authentication (headless/CI only)
 
-- API token expired (regenerate at Atlassian)
-- Network connectivity issues
-- Server URL changed
+Only use if OAuth is not possible (e.g., CI pipelines, headless servers):
+
+```bash
+# Get token from: https://id.atlassian.com/manage-profile/security/api-tokens
+echo "$JIRA_TOKEN" | acli jira auth login \
+  --site "company.atlassian.net" \
+  --email "user@company.com" \
+  --token
+```
