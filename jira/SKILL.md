@@ -1,6 +1,6 @@
 ---
 name: jira
-description: Manage Jira tickets via CLI - search issues, view details, create tickets, update status, and add comments. Use when user mentions ticket IDs (PROJ-123), asks about their tasks, or wants to interact with Jira.
+description: Manage Jira tickets via CLI - search issues, view details, create tickets, update status, and add comments. Use when user mentions ticket IDs (PROJ-123), asks about their tasks, work history, accomplishments, or wants to interact with Jira.
 ---
 
 # Jira Skill
@@ -15,6 +15,8 @@ Use this skill when:
 - User asks about their assigned tickets or tasks
 - User wants to create, update, or comment on Jira issues
 - User asks about sprint or project status
+- User asks about their work history or accomplishments
+- User wants to review completed work
 - Keywords: jira, ticket, issue, sprint, backlog, assigned to me
 
 ## Pre-flight Check
@@ -22,11 +24,11 @@ Use this skill when:
 **Before running any jira command**, validate configuration:
 
 ```bash
-./jira/scripts/setup.sh --validate-only
+./scripts/setup.sh --validate-only
 ```
 
 - Exit 0: Configuration valid, proceed with jira commands
-- Exit non-zero: Show error to user. If interactive session available, run `./jira/scripts/setup.sh` (without flag) to configure
+- Exit non-zero: Show error to user. If interactive session available, run `./scripts/setup.sh` (without flag) to configure
 
 The `--validate-only` flag prevents interactive prompts that would hang in automation.
 
@@ -164,7 +166,7 @@ export JIRA_LOGIN="your.email@company.com"
 export JIRA_API_TOKEN="your-api-token"
 export JIRA_AUTH_TYPE="bearer"  # or "basic"
 export JIRA_PROJECT="PROJ"      # optional: default project
-./jira/scripts/setup.sh
+./scripts/setup.sh
 ```
 
 ## Troubleshooting
@@ -175,7 +177,7 @@ Move old config and re-run setup:
 
 ```bash
 mkdir -p TRASH && mv ~/.config/jira/config.yaml TRASH/jira-config-backup.yaml
-./jira/scripts/setup.sh
+./scripts/setup.sh
 ```
 
 ### Unknown project

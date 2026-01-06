@@ -27,12 +27,27 @@ done
 if ! command -v jira &>/dev/null; then
     echo "Error: jira-cli is not installed."
     echo ""
-    echo "Install with:"
-    echo "  brew install ankitpokhrel/jira-cli/jira-cli"
-    echo ""
-    echo "Or:"
-    echo "  go install github.com/ankitpokhrel/jira-cli/cmd/jira@latest"
-    exit 1
+
+    # Check if we can auto-install
+    if [[ "$VALIDATE_ONLY" != "true" ]] && [[ -t 0 ]] && command -v brew &>/dev/null; then
+        echo "Would you like to install it now via Homebrew? [y/N]"
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            echo "Installing jira-cli..."
+            brew install ankitpokhrel/jira-cli/jira-cli
+            echo "Installation complete."
+        else
+            echo "Skipping installation."
+            exit 1
+        fi
+    else
+        echo "Install with:"
+        echo "  brew install ankitpokhrel/jira-cli/jira-cli"
+        echo ""
+        echo "Or:"
+        echo "  go install github.com/ankitpokhrel/jira-cli/cmd/jira@latest"
+        exit 1
+    fi
 fi
 
 # Validate existing configuration
