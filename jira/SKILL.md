@@ -122,6 +122,8 @@ acli jira project list --json
 
 **IMPORTANT**: Before executing any mutating command, use `AskUserQuestion` to confirm the action with the user. Mutating commands modify Jira data and cannot be easily undone.
 
+**Text Format**: ACLI expects plain text for descriptions and comments. Do not use markdown formatting (e.g., `**bold**`, `[links](url)`, `- lists`) as it will render literally in Jira.
+
 ### Create Issues
 
 **Always confirm before creating:**
@@ -130,7 +132,7 @@ acli jira project list --json
 # Create task
 acli jira workitem create --project PROJ --type Task --summary "Summary text"
 
-# Create with description
+# Create with description (use plain text, not markdown)
 acli jira workitem create --project PROJ --type Task --summary "Summary" --description "Description body"
 
 # Create bug assigned to self
@@ -155,7 +157,7 @@ acli jira workitem assign --key "PROJ-123" --assignee "user@company.com"
 # Assign to current user
 acli jira workitem assign --key "PROJ-123" --assignee "@me"
 
-# Add comment
+# Add comment (use plain text, not markdown)
 acli jira workitem comment create --key "PROJ-123" --body "Comment text here"
 
 # Edit summary
@@ -198,6 +200,7 @@ Proceed? (This will modify Jira data)
 - **Pagination**: Use `--limit N` to cap results, `--paginate` for all results
 - **Bulk operations**: Most commands support `--jql` or `--filter` for batch actions
 - **Getting dates/resolution**: Search can filter by any JQL field but only displays defaults. Use `view --fields "*all"` for created, updated, resolution, etc.
+- **Plain text only**: ACLI sends text as-is. Markdown syntax will appear literally in Jira, not rendered.
 
 ## Configuration
 
