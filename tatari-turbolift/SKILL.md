@@ -1,6 +1,11 @@
 ---
 name: tatari-turbolift
 description: Automate bulk code changes across multiple GitHub repositories using turbolift for campaign management, slam for batch PR review/merge, and gh CLI. Use when making identical or similar changes to many repositories, running bulk refactoring campaigns, or automating mass updates. (project, gitignored)
+allowed-tools:
+  - Bash(turbolift:*)
+  - Bash(slam:*)
+  - Bash(gh:*)
+  - Bash(rg:*)
 ---
 
 # Turbolift Campaign Management Skill

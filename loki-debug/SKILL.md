@@ -1,6 +1,11 @@
 ---
 name: loki-debug
 description: Debug Kubernetes pod failures by querying logs from Loki. Use when investigating errors, crashes, or unexpected behavior in pods. Provide a cluster, namespace, and service name to start.
+allowed-tools:
+  - Bash(kubectl:*)
+  - Bash(curl:*)
+  - Bash(jq:*)
+  - Bash(rg:*)
 ---
 
 # Loki Log Debugging Skill
