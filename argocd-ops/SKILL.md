@@ -1,7 +1,7 @@
 ---
 name: argocd-ops
 description: Manage ArgoCD applications via CLI - verify sync status, trigger jobs from cronjobs, refresh apps, and toggle auto-sync/self-heal settings. Use when deploying, debugging sync issues, or running manual jobs in ArgoCD-managed clusters.
-model: haiku
+model: claude-haiku-4-5-20251001
 allowed-tools:
   - Bash(argocd:*)
   - Bash(kubectl:*)
