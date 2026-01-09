@@ -1,7 +1,7 @@
 ---
 name: loki-debug
 description: Debug Kubernetes pod failures by querying logs from Loki. Use when investigating errors, crashes, or unexpected behavior in pods. Provide a cluster, namespace, and service name to start.
-model: haiku
+model: claude-haiku-4-5-20251001
 allowed-tools:
   - Bash(kubectl:*)
   - Bash(curl:*)

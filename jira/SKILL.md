@@ -1,7 +1,7 @@
 ---
 name: jira
 description: Manage Jira tickets via CLI - search issues, view details, create tickets, update status, and add comments. Use when user mentions ticket IDs (PROJ-123), asks about their tasks, work history, accomplishments, or wants to interact with Jira.
-model: haiku
+model: claude-haiku-4-5-20251001
 allowed-tools:
   - Bash(acli:*)
   - Bash(./scripts/*)
