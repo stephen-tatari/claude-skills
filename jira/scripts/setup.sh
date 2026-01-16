@@ -70,7 +70,11 @@ fi
 
 # In validate-only mode, exit if no valid config
 if [[ "$VALIDATE_ONLY" == "true" ]]; then
-    echo "No valid configuration found. Run setup.sh without --validate-only to configure."
+    echo ""
+    echo "To authenticate, run this command in your terminal:"
+    echo "  acli jira auth login --web"
+    echo ""
+    echo "This will open your browser for secure OAuth authentication."
     exit 1
 fi
 
