@@ -32,8 +32,13 @@ Use this skill when:
 ./scripts/setup.sh --validate-only
 ```
 
-- Exit 0: Configuration valid, proceed with acli commands
-- Exit non-zero: Show error to user. If interactive session available, run `./scripts/setup.sh` (without flag) to configure via OAuth
+- **Exit 0**: Configuration valid, proceed with acli commands
+- **Exit non-zero**: Authentication required. Follow this flow:
+  1. Show the user the output (which includes `acli jira auth login --web`)
+  2. Use `AskUserQuestion` to ask: "Have you run the authentication command? Let me know when you're ready to continue."
+  3. When user confirms, re-run `./scripts/setup.sh --validate-only`
+  4. If validation passes, continue with the original Jira task
+  5. If validation still fails, inform the user and offer to retry
 
 The `--validate-only` flag prevents interactive prompts that would hang in automation.
 
