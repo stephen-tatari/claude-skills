@@ -477,6 +477,26 @@ After creating draft PRs, use `slam` for bulk operations:
 gh search prs 'org:tatari-tv SRE-XXXX is:draft is:open' --json number,title,repository
 ```
 
+---
+
+**⚠️ STOP: Review Draft PRs Before Marking Ready**
+
+Before marking PRs ready for review, complete these validations:
+
+1. ✅ **Review all draft PRs in GitHub UI** - verify changes are correct
+2. ✅ **Confirm CI passes on all draft PRs** - no failing checks
+3. ✅ **Verify changes match intent** - no unexpected modifications
+4. ✅ **Complete manual testing** if applicable to the change type
+
+**DO NOT proceed to Step 2 until:**
+- You have opened and reviewed each draft PR in the GitHub web interface
+- All CI/CD checks show green (passing)
+- You are confident the changes are ready for reviewers to see
+
+This is a manual gate - explicitly confirm you want to proceed before marking PRs ready for review.
+
+---
+
 #### Step 2: Mark PRs Ready for Review
 
 ##### For repos in current turbolift campaign
