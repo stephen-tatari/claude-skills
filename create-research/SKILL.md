@@ -8,9 +8,32 @@ allowed-tools:
   - Bash(date:*)
   - Bash(git:*)
   - Skill
+  - Task
+  - Glob
+  - Grep
 ---
 
 # Create Research Document
+
+**Announce at start:** "I'm using the create-research skill to document [topic]."
+
+## Mandate
+
+**Documentation only.** You must:
+
+- Describe what exists
+- Explain how code works
+- Document patterns and connections
+- Cite sources with file:line references
+
+You must NOT:
+
+- Critique implementation choices
+- Suggest improvements or refactoring
+- Evaluate code quality
+- Recommend changes (unless explicitly asked)
+
+---
 
 Create research notes or Architecture Decision Records (ADRs) in `ai_docs/research/` following the [Decision Records with AI Assistance](https://github.com/stephen-tatari/coding-agent-documentation) schema.
 
@@ -44,7 +67,53 @@ Ask the user:
 
 This affects which sections to emphasize.
 
-### Step 3: Gather Context
+### Step 3: Research Phase
+
+**Before writing the document, investigate systematically:**
+
+#### 3a: Read Mentioned Files First
+
+Read ALL files the user mentioned completely. Do not use limit/offset parameters. This happens in YOUR context, not delegated.
+
+#### 3b: Spawn Parallel Sub-Agents
+
+Launch these Task agents **in parallel** (single message, multiple tool calls):
+
+**codebase-locator** (subagent_type: Explore)
+
+````text
+Find all files and components related to: [research topic]
+Report file paths, their purposes, and how they connect.
+Do not evaluate or critique - document only.
+````
+
+**codebase-analyzer** (subagent_type: Explore)
+
+````text
+Analyze how [specific component/feature] works.
+Trace the code path and explain the implementation.
+Include file:line references for key locations.
+Do not suggest improvements - document only.
+````
+
+**pattern-finder** (subagent_type: Explore)
+
+````text
+Find 3+ existing examples of [relevant pattern] in the codebase.
+Document each with file:line references.
+Note any variations in how the pattern is applied.
+````
+
+#### 3c: Synthesize Findings
+
+Wait for all agents to complete before proceeding. Compile:
+
+- File paths and line numbers for all relevant code
+- Code flow traces
+- Pattern documentation with 3+ examples
+- Connections between components
+
+### Step 4: Gather Context
 
 For **exploratory research**, ask:
 
@@ -59,7 +128,7 @@ For **decision records (ADR)**, ask:
 - What constraints apply?
 - Data sensitivity level
 
-### Step 4: Generate Filename
+### Step 5: Generate Filename
 
 ```bash
 DATE=$(date +%Y-%m-%d)
@@ -69,11 +138,21 @@ FILENAME="ai_docs/research/${DATE}-<topic>.md"
 
 Example: `ai_docs/research/2026-02-02-auth-library-selection.md`
 
-### Step 5: Write the Document
+### Step 6: Gather Git Metadata
+
+```bash
+GIT_COMMIT=$(git rev-parse --short HEAD)
+GIT_BRANCH=$(git branch --show-current)
+GIT_REPO=$(basename $(git rev-parse --show-toplevel))
+```
+
+Use these values in the frontmatter.
+
+### Step 7: Write the Document
 
 **For Exploratory Research:**
 
-```markdown
+````markdown
 ---
 schema_version: 1
 date: [YYYY-MM-DD]
@@ -89,6 +168,11 @@ ai_assisted: true
 # Linking
 related_pr:
 related_issue:
+
+# Git Context
+git_commit: [short-sha from git rev-parse --short HEAD]
+branch: [from git branch --show-current]
+repository: [from basename $(git rev-parse --show-toplevel)]
 
 # Classification
 tags: [relevant, tags]
@@ -111,6 +195,12 @@ data_sensitivity: [public|internal|restricted]
 
 [Details with links to sources]
 
+## Code References
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| path/to/file.ext | 10-50 | Description of relevance |
+
 ## Key Takeaways
 
 - [Takeaway 1]
@@ -125,11 +215,11 @@ data_sensitivity: [public|internal|restricted]
 
 - [Link to source 1]
 - [Link to source 2]
-```
+````
 
 **For Decision Records (ADR):**
 
-```markdown
+````markdown
 ---
 schema_version: 1
 date: [YYYY-MM-DD]
@@ -145,6 +235,11 @@ ai_assisted: true
 # Linking
 related_pr:
 related_issue:
+
+# Git Context
+git_commit: [short-sha from git rev-parse --short HEAD]
+branch: [from git branch --show-current]
+repository: [from basename $(git rev-parse --show-toplevel)]
 
 # Classification
 tags: [adr, relevant, tags]
@@ -195,6 +290,12 @@ data_sensitivity: [public|internal|restricted]
 
 We will use [Option X] because [rationale].
 
+## Code References
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| path/to/file.ext | 10-50 | Description of relevance |
+
 ## Consequences
 
 ### Positive
@@ -215,9 +316,24 @@ We will use [Option X] because [rationale].
 
 - [Link to source 1]
 - [Link to source 2]
-```
+````
 
-### Step 6: Remind About Review Requirement
+### Step 8: Quality Checklist
+
+Before finalizing, verify:
+
+- [ ] **Research phase complete** - Parallel agents spawned and findings synthesized
+- [ ] **3+ patterns found** - pattern-finder agent returned examples with file:line refs
+- [ ] **File:line references** - Every finding has specific code references
+- [ ] **Code References table** - Populated with key files
+- [ ] Claims are linked to sources
+- [ ] Assumptions are explicitly stated
+- [ ] For ADRs: Alternatives have clear pros/cons
+- [ ] Data sensitivity is appropriate (no secrets if public)
+- [ ] No credentials or sensitive internal URLs
+- [ ] Git metadata is populated (commit, branch, repository)
+
+### Step 9: Remind About Review Requirement
 
 After creating the document, remind the user:
 
@@ -230,15 +346,21 @@ A human reviewer must attest that the content reflects the team's understanding.
 For ADRs: Update status from "Proposed" to "Accepted" after team review.
 ```
 
-## Quality Checklist
+### Step 10: Offer Convergent Review (Complex Research)
 
-Before finalizing, verify:
+For complex or high-stakes research, offer multi-pass review:
 
-- [ ] Claims are linked to sources
-- [ ] Assumptions are explicitly stated
-- [ ] For ADRs: Alternatives have clear pros/cons
-- [ ] Data sensitivity is appropriate (no secrets if public)
-- [ ] No credentials or sensitive internal URLs
+```text
+Research document created at: ai_docs/research/YYYY-MM-DD-topic.md
+
+For complex research, consider convergent review (4-5 passes until findings stabilize):
+- Pass 1: Completeness - Are all aspects of the question addressed?
+- Pass 2: Accuracy - Are file:line references correct and current?
+- Pass 3: Alternatives - Did we miss any relevant patterns or approaches?
+- Pass 4: Integration - How do findings connect to broader codebase?
+
+Would you like me to run convergent review on this research?
+```
 
 ## Status Transitions
 

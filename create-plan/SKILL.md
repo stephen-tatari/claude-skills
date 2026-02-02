@@ -30,13 +30,19 @@ Create structured implementation plan documents in `ai_docs/plans/` following th
 
 ### Step 1: Initialize Directory Structure
 
-First, invoke the `init-ai-docs` skill to ensure the directory structure exists:
+Invoke the `init-ai-docs` skill to ensure the directory structure exists:
 
 ```text
 /init-ai-docs
 ```
 
 This is idempotent and safe to run even if structure already exists.
+
+**Fallback if skill unavailable:**
+
+```bash
+mkdir -p ai_docs/plans ai_docs/research ai_docs/logs
+```
 
 ### Step 2: Gather Context
 
@@ -57,22 +63,35 @@ Ask the user for:
 
 **Research approach:**
 
-```text
-Spawn parallel agents to:
-- Find similar features in the codebase
-- Locate relevant tests to use as templates
-- Identify helper utilities that already exist
-```
+Use Task tool with `subagent_type: Explore` to search in parallel (preferred) or sequential Glob/Grep if Task unavailable:
 
-**No open questions rule:** Research or ask the user before writing. The plan must be complete - don't leave questions in the document.
+| Search Goal | Parallel (Task tool) | Sequential (fallback) |
+|-------------|---------------------|----------------------|
+| Similar features | `Task(Explore): "Find implementations of [feature type]"` | `Grep` for key terms, then `Read` matches |
+| Test templates | `Task(Explore): "Find tests for [similar feature]"` | `Glob` for `**/test*` patterns |
+| Helper utilities | `Task(Explore): "Find utility functions for [domain]"` | `Grep` for common function names |
+
+**No open questions rule:** Research or ask the user before writing. The plan document must be complete - questions are allowed during context gathering (Step 2), but not left unresolved in the final document.
 
 ### Step 4: Generate Filename
 
 ```bash
 DATE=$(date +%Y-%m-%d)
-# Convert feature name to kebab-case
 FILENAME="ai_docs/plans/${DATE}-<feature-name>.md"
 ```
+
+**Kebab-case conversion rules** (apply manually - no external tools needed):
+
+1. Convert to lowercase
+2. Replace spaces with hyphens
+3. Remove special characters except hyphens
+4. Collapse multiple hyphens to single hyphen
+
+| Input | Output |
+|-------|--------|
+| "OAuth2 Implementation" | `oauth2-implementation` |
+| "Add User Auth" | `add-user-auth` |
+| "Fix Bug #123" | `fix-bug-123` |
 
 Example: `ai_docs/plans/2026-02-02-oauth2-implementation.md`
 
@@ -234,22 +253,27 @@ After creating the plan, remind the user:
 ```text
 Plan created at: ai_docs/plans/YYYY-MM-DD-feature-name.md
 
-IMPORTANT: The `reviewed_by` field is required before merging.
+IMPORTANT: The `reviewed_by` field is required before execution.
 A human reviewer must attest that the plan reflects the team's intent.
 
 ## Execution Options
 
-Once reviewed, two approaches for implementation:
+Once reviewed, choose an implementation approach:
 
-**1. Subagent-Driven (this session)**
-- I dispatch fresh subagent per task
+**1. Subagent-Driven (this session)** - requires Task tool
+- Dispatch fresh subagent per task
 - Review between tasks
 - Fast iteration with code review checkpoints
 
-**2. Parallel Session (separate)**
+**2. Parallel Session (separate)** - requires `executing-plans` skill
 - Open new session with executing-plans skill
 - Batch execution with checkpoints
 - Good for longer implementations
+
+**3. Manual Execution (always available)**
+- Work through phases sequentially in current session
+- Follow TDD cycle for each task
+- Commit after each phase passes verification
 
 Which approach would you prefer?
 ```
