@@ -70,7 +70,7 @@ status: active
 topic: "[Feature/Task Name] Implementation"
 
 # Accountability
-author: ai-assisted
+author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
 
 # Git context

@@ -108,8 +108,7 @@ status: draft
 topic: "[Feature Name] Implementation Plan"
 
 # Accountability
-author: ai-assisted
-reviewed_by:                    # Required before merging
+author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
 
 # Linking
@@ -256,8 +255,8 @@ Plan created at: ai_docs/plans/YYYY-MM-DD-feature-name.md
 IMPORTANT: Commit this plan so it merges with your branch:
 git add ai_docs/plans/YYYY-MM-DD-feature-name.md && git commit -m "docs: add plan for feature-name"
 
-IMPORTANT: The `reviewed_by` field is required before execution.
-A human reviewer must attest that the plan reflects the team's intent.
+NOTE: Human accountability is provided through PR review. Ensure the plan
+is reviewed as part of the normal PR process before merging.
 
 ## Execution Options
 
