@@ -48,9 +48,16 @@ git commit -m "Add skill-name skill"
 - **[create-handoff](create-handoff/)**: Create session handoff documents
 - **[resume-handoff](resume-handoff/)**: Resume work from previous handoff documents
 
-### Operations
+### DevOps & CI/CD
 
-- **[tatari-turbolift](tatari-turbolift/)**: Automates Git branch workflows for feature development, releases, and hotfixes using structured naming conventions
+- **[tatari-turbolift](tatari-turbolift/)**: Automate bulk code changes across GitHub repositories using turbolift
+- **[argocd-ops](argocd-ops/)**: Manage ArgoCD applications - sync status, refresh, trigger jobs, toggle settings
+- **[github-actions](github-actions/)**: Troubleshoot GitHub Actions - find workflow runs, download logs, analyze failures
+- **[loki-debug](loki-debug/)**: Debug Kubernetes pod failures by querying logs from Loki
+
+### Project Management
+
+- **[jira](jira/)**: Manage Jira tickets - search, view, create, update status, add comments
 
 ## Creating Your Own Skills
 
