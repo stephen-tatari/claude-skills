@@ -55,7 +55,7 @@ date: [YYYY-MM-DD]
 type: index
 status: active
 topic: "[Project Name] Decision Records Index"
-author: ai-assisted
+author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
 ---
 
@@ -110,8 +110,7 @@ status: draft
 topic: "[Feature Name] Implementation Plan"
 
 # Accountability
-author: [your-name or ai-assisted]
-reviewed_by:                    # Required before merging
+author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
 
 # Linking
@@ -198,8 +197,7 @@ status: draft
 topic: "[Topic] Research"
 
 # Accountability
-author: [your-name or ai-assisted]
-reviewed_by:                    # Required before merging
+author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
 
 # Linking
@@ -265,7 +263,7 @@ status: active
 topic: "[Feature/Task Name] Implementation"
 
 # Accountability
-author: ai-assisted
+author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
 
 # Git context

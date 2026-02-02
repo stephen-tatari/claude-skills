@@ -161,8 +161,7 @@ status: draft
 topic: "[Topic] Research"
 
 # Accountability
-author: ai-assisted
-reviewed_by:                    # Required before merging
+author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
 
 # Linking
@@ -228,8 +227,7 @@ status: draft
 topic: "[Decision Topic] ADR"
 
 # Accountability
-author: ai-assisted
-reviewed_by:                    # Required before merging
+author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
 
 # Linking
@@ -343,8 +341,8 @@ Research document created at: ai_docs/research/YYYY-MM-DD-topic.md
 IMPORTANT: Commit this document so it merges with your branch:
 git add ai_docs/research/YYYY-MM-DD-topic.md && git commit -m "docs: add research on topic"
 
-IMPORTANT: The `reviewed_by` field is required before merging.
-A human reviewer must attest that the content reflects the team's understanding.
+NOTE: Human accountability is provided through PR review. Ensure the document
+is reviewed as part of the normal PR process before merging.
 
 For ADRs: Update status from "Proposed" to "Accepted" after team review.
 ```

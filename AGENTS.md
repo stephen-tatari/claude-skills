@@ -188,7 +188,7 @@ This repository includes skills for creating decision documentation following th
 Documents follow a structured schema:
 
 - **Required**: `schema_version`, `date`, `type`, `status`, `topic`
-- **Accountability**: `author`, `reviewed_by` (required for plans/research), `ai_assisted`
+- **Accountability**: `author` (git user name), `ai_assisted`
 - **Linking**: `related_pr`, `related_issue`, `superseded_by`
 - **Classification**: `tags`, `data_sensitivity`
 
@@ -199,7 +199,7 @@ Before committing decision documents:
 - Claims linked to sources
 - Assumptions explicitly listed
 - Alternatives considered (for plans/research)
-- Human reviewer attests via `reviewed_by` field
+- PR review provides human accountability (no separate `reviewed_by` field needed)
 - No secrets or sensitive data
 
 ## Reference
