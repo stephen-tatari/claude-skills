@@ -40,6 +40,16 @@ git commit -m "Add skill-name skill"
 
 ## Available Skills
 
+### Decision Records
+
+- **[init-ai-docs](init-ai-docs/)**: Bootstrap ai_docs/ directory structure for decision records
+- **[create-plan](create-plan/)**: Create implementation plan documents
+- **[create-research](create-research/)**: Create research notes or ADRs
+- **[create-handoff](create-handoff/)**: Create session handoff documents
+- **[resume-handoff](resume-handoff/)**: Resume work from previous handoff documents
+
+### Operations
+
 - **[tatari-turbolift](tatari-turbolift/)**: Automates Git branch workflows for feature development, releases, and hotfixes using structured naming conventions
 
 ## Creating Your Own Skills
