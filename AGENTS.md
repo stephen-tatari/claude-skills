@@ -172,6 +172,36 @@ To install Skills globally for all your projects:
 cp -r skill-name ~/.claude/skills/
 ```
 
+## Decision Record Skills
+
+This repository includes skills for creating decision documentation following the [Decision Records with AI Assistance](https://github.com/stephen-tatari/coding-agent-documentation) convention.
+
+### Workflow
+
+1. **Start a feature**: Run `/create-plan` to document approach before coding
+2. **Technical decisions**: Run `/create-research` to capture ADRs
+3. **Session breaks**: Run `/create-handoff` to preserve context
+4. **Resume work**: Run `/resume-handoff` to continue from where you left off
+
+### Schema
+
+Documents follow a structured schema:
+
+- **Required**: `schema_version`, `date`, `type`, `status`, `topic`
+- **Accountability**: `author`, `reviewed_by` (required for plans/research), `ai_assisted`
+- **Linking**: `related_pr`, `related_issue`, `superseded_by`
+- **Classification**: `tags`, `data_sensitivity`
+
+### Quality Bar
+
+Before committing decision documents:
+
+- Claims linked to sources
+- Assumptions explicitly listed
+- Alternatives considered (for plans/research)
+- Human reviewer attests via `reviewed_by` field
+- No secrets or sensitive data
+
 ## Reference
 
 For comprehensive documentation on Skills, see:
