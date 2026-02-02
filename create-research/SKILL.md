@@ -340,6 +340,9 @@ After creating the document, remind the user:
 ```text
 Research document created at: ai_docs/research/YYYY-MM-DD-topic.md
 
+IMPORTANT: Commit this document so it merges with your branch:
+git add ai_docs/research/YYYY-MM-DD-topic.md && git commit -m "docs: add research on topic"
+
 IMPORTANT: The `reviewed_by` field is required before merging.
 A human reviewer must attest that the content reflects the team's understanding.
 

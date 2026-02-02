@@ -253,6 +253,9 @@ After creating the plan, remind the user:
 ```text
 Plan created at: ai_docs/plans/YYYY-MM-DD-feature-name.md
 
+IMPORTANT: Commit this plan so it merges with your branch:
+git add ai_docs/plans/YYYY-MM-DD-feature-name.md && git commit -m "docs: add plan for feature-name"
+
 IMPORTANT: The `reviewed_by` field is required before execution.
 A human reviewer must attest that the plan reflects the team's intent.
 
