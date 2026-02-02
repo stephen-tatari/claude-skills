@@ -8,11 +8,16 @@ allowed-tools:
   - Bash(date:*)
   - Bash(git:*)
   - Skill
+  - Task
+  - Glob
+  - Grep
 ---
 
 # Create Implementation Plan
 
 Create structured implementation plan documents in `ai_docs/plans/` following the [Decision Records with AI Assistance](https://github.com/stephen-tatari/coding-agent-documentation) schema.
+
+**Announce at start:** "I'm using the create-plan skill to create an implementation plan."
 
 ## When to Use
 
@@ -42,7 +47,26 @@ Ask the user for:
 3. **Constraints**: Technical or business constraints
 4. **Alternatives**: What options were considered?
 
-### Step 3: Generate Filename
+### Step 3: Research Phase
+
+**Before writing the plan, gather context systematically:**
+
+1. **Read all referenced files completely** - Don't skim, read in full
+2. **Find 3 similar patterns** - Use parallel sub-agents to locate existing implementations that mirror what you're building
+3. **Identify conventions** - Note testing patterns, file organization, naming conventions
+
+**Research approach:**
+
+```text
+Spawn parallel agents to:
+- Find similar features in the codebase
+- Locate relevant tests to use as templates
+- Identify helper utilities that already exist
+```
+
+**No open questions rule:** Research or ask the user before writing. The plan must be complete - don't leave questions in the document.
+
+### Step 4: Generate Filename
 
 ```bash
 DATE=$(date +%Y-%m-%d)
@@ -52,7 +76,7 @@ FILENAME="ai_docs/plans/${DATE}-<feature-name>.md"
 
 Example: `ai_docs/plans/2026-02-02-oauth2-implementation.md`
 
-### Step 4: Write the Plan Document
+### Step 5: Write the Plan Document
 
 Use this template:
 
@@ -80,9 +104,19 @@ data_sensitivity: internal
 
 # Plan: [Feature Name]
 
+## Desired End State
+
+[Describe what success looks like. What will exist when this is done? How will users/developers interact with it?]
+
 ## Overview
 
 [1-2 paragraph summary of what this plan achieves]
+
+## What We're NOT Doing
+
+- [Explicitly list out-of-scope items to prevent scope creep]
+- [Things that might seem related but are excluded]
+- [Future enhancements deferred to later]
 
 ## Assumptions
 
@@ -116,13 +150,39 @@ data_sensitivity: internal
 
 **Tasks:**
 
-- [ ] Task 1
-- [ ] Task 2
+Each task is ONE action (2-5 minutes):
 
-**Success Criteria:**
+- [ ] **Step 1:** Write failing test for [specific behavior]
+  - File: `tests/path/to/test.py`
+  - Run: `pytest tests/path/test.py::test_name -v`
+  - Expected: FAIL with "[specific error]"
 
-- [Automated] `command to verify`
-- [Manual] Description of manual check
+- [ ] **Step 2:** Verify test fails correctly
+  - Run the test command above
+  - Confirm failure message matches expected
+
+- [ ] **Step 3:** Write minimal implementation
+  - File: `src/path/to/file.py:45-67`
+  - Add: [specific code or description]
+
+- [ ] **Step 4:** Verify test passes
+  - Run: `pytest tests/path/test.py::test_name -v`
+  - Expected: PASS
+
+- [ ] **Step 5:** Commit
+  - `git add <files> && git commit -m "feat: add specific feature"`
+
+#### Success Criteria
+
+**Automated Verification:**
+
+- [ ] Tests pass: `pytest tests/path/ -v`
+- [ ] Lint passes: `make lint` or project equivalent
+
+**Manual Verification:**
+
+- [ ] [Description of manual check]
+- [ ] [Another manual verification step]
 
 ### Phase 2: [Name]
 
@@ -130,33 +190,44 @@ data_sensitivity: internal
 
 **Tasks:**
 
-- [ ] Task 1
-- [ ] Task 2
+- [ ] **Step 1:** [action with file:line reference]
+- [ ] **Step 2:** [action]
+- [ ] ...
 
-**Success Criteria:**
+#### Success Criteria
 
-- [Automated] `command to verify`
-- [Manual] Description of manual check
+**Automated Verification:**
 
-## Verification
+- [ ] [command to run]
 
-**Automated checks:**
+**Manual Verification:**
 
-```bash
-# Commands to verify implementation
-```
-
-**Manual verification:**
-
-- [ ] Check 1
-- [ ] Check 2
+- [ ] [manual check description]
 
 ## Critical Files
 
-- `path/to/file.ext` - Description of relevance
+- `path/to/file.ext:line-range` - Description of relevance
+- `tests/path/to/test.ext` - Test file to mirror
+- `path/to/similar/impl.ext:50-75` - Similar pattern to follow
 ````
 
-### Step 5: Remind About Review Requirement
+### Step 6: Quality Checklist
+
+Before finalizing the plan, verify:
+
+- [ ] **No open questions** - All ambiguities resolved through research or asking
+- [ ] **Desired end state** is clearly described
+- [ ] **Out-of-scope items** are explicitly listed
+- [ ] **Assumptions** are explicitly listed
+- [ ] **Alternatives** were considered with pros/cons
+- [ ] **Each task is one action** (2-5 minutes, single verb)
+- [ ] **File:line references** included for all code changes
+- [ ] **Success criteria split** into automated vs manual
+- [ ] **TDD cycle explicit** in task steps (test → verify fail → impl → verify pass → commit)
+- [ ] **No secrets** or sensitive data included
+- [ ] **3 similar patterns** identified and referenced in Critical Files
+
+### Step 7: Remind About Review and Offer Execution
 
 After creating the plan, remind the user:
 
@@ -166,21 +237,22 @@ Plan created at: ai_docs/plans/YYYY-MM-DD-feature-name.md
 IMPORTANT: The `reviewed_by` field is required before merging.
 A human reviewer must attest that the plan reflects the team's intent.
 
-Next steps:
-1. Review and refine the plan
-2. Add reviewer name to `reviewed_by` field
-3. Begin implementation (consider using /create-handoff at stopping points)
+## Execution Options
+
+Once reviewed, two approaches for implementation:
+
+**1. Subagent-Driven (this session)**
+- I dispatch fresh subagent per task
+- Review between tasks
+- Fast iteration with code review checkpoints
+
+**2. Parallel Session (separate)**
+- Open new session with executing-plans skill
+- Batch execution with checkpoints
+- Good for longer implementations
+
+Which approach would you prefer?
 ```
-
-## Quality Checklist
-
-Before finalizing the plan, verify:
-
-- [ ] Assumptions are explicitly listed
-- [ ] Alternatives were considered with pros/cons
-- [ ] Each phase has clear success criteria
-- [ ] No secrets or sensitive data included
-- [ ] Claims are linked to sources where applicable
 
 ## Cross-Referencing
 
@@ -191,3 +263,27 @@ Based on constraints in @ai_docs/research/2026-01-10-auth-options.md
 ```
 
 This syntax is grep-able and parseable by AI agents.
+
+## Task Granularity Guide
+
+**Each step is ONE action (2-5 minutes):**
+
+| Good (one action) | Bad (multiple actions) |
+|-------------------|------------------------|
+| Write the failing test | Write tests and implement |
+| Run test to verify it fails | Test and fix |
+| Write minimal implementation | Implement feature |
+| Run test to verify it passes | Make it work |
+| Commit | Finish phase |
+
+**TDD cycle in tasks:**
+
+```text
+Step 1: Write failing test
+Step 2: Run test to verify it fails
+Step 3: Write minimal implementation
+Step 4: Run test to verify it passes
+Step 5: Commit
+```
+
+Repeat for each behavior/feature within the phase.
