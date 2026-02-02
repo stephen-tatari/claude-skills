@@ -28,7 +28,7 @@ Create a structured handoff document for session continuity. The goal is to comp
 
 First, invoke the `init-ai-docs` skill to ensure the directory structure exists:
 
-```
+```text
 /init-ai-docs
 ```
 
@@ -136,7 +136,7 @@ mkdir -p "$HANDOFF_DIR"
 
 After completion, inform the user:
 
-```
+```text
 Handoff created! Resume in a new session with:
 /resume-handoff ai_docs/handoffs/<filename>.md
 ```

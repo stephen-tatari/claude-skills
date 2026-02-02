@@ -27,7 +27,7 @@ Create research notes or Architecture Decision Records (ADRs) in `ai_docs/resear
 
 First, invoke the `init-ai-docs` skill to ensure the directory structure exists:
 
-```
+```text
 /init-ai-docs
 ```
 
@@ -221,7 +221,7 @@ We will use [Option X] because [rationale].
 
 After creating the document, remind the user:
 
-```
+```text
 Research document created at: ai_docs/research/YYYY-MM-DD-topic.md
 
 IMPORTANT: The `reviewed_by` field is required before merging.
@@ -244,7 +244,7 @@ Before finalizing, verify:
 
 For ADRs:
 
-```
+```text
 Proposed → Accepted → [Deprecated | Superseded]
 ```
 

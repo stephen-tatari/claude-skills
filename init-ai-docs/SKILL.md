@@ -108,7 +108,7 @@ Only create templates that don't already exist.
 
 **templates/plan.md:**
 
-```markdown
+````markdown
 ---
 schema_version: 1
 date: [YYYY-MM-DD]
@@ -192,7 +192,7 @@ data_sensitivity: internal
 
 - [ ] Check 1
 - [ ] Check 2
-```
+````
 
 **templates/research.md:**
 
@@ -347,7 +347,7 @@ This skill is safe to run multiple times:
 
 After completion, inform the user:
 
-```
+```text
 ai_docs/ structure initialized at: $AI_DOCS
 
 Created:

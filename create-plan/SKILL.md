@@ -27,7 +27,7 @@ Create structured implementation plan documents in `ai_docs/plans/` following th
 
 First, invoke the `init-ai-docs` skill to ensure the directory structure exists:
 
-```
+```text
 /init-ai-docs
 ```
 
@@ -56,7 +56,7 @@ Example: `ai_docs/plans/2026-02-02-oauth2-implementation.md`
 
 Use this template:
 
-```markdown
+````markdown
 ---
 schema_version: 1
 date: [YYYY-MM-DD]
@@ -154,13 +154,13 @@ data_sensitivity: internal
 ## Critical Files
 
 - `path/to/file.ext` - Description of relevance
-```
+````
 
 ### Step 5: Remind About Review Requirement
 
 After creating the plan, remind the user:
 
-```
+```text
 Plan created at: ai_docs/plans/YYYY-MM-DD-feature-name.md
 
 IMPORTANT: The `reviewed_by` field is required before merging.
