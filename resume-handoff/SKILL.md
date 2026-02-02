@@ -20,31 +20,34 @@ Resume work based on a handoff document containing prior context and learnings.
 
 The handoff file path is provided as: `$ARGUMENTS`
 
-**IMPORTANT: Handoffs are always stored in the main repository, never in worktrees.**
-
 ### Path Detection
 
-If you're in a worktree, adjust the path to search in the main repository:
+Search current location first, then fall back to main repo for older handoffs:
 
 ```bash
-# Detect if in a worktree
+# Initialize search locations
+HANDOFF_DIRS=()
+
+# 1. Check current repo location first (works in both worktree and main repo)
+if [[ -d "ai_docs/handoffs" ]]; then
+  HANDOFF_DIRS+=("ai_docs/handoffs")
+fi
+
+# 2. Legacy path in current location
+if [[ -d "thoughts/shared/handoffs" ]]; then
+  HANDOFF_DIRS+=("thoughts/shared/handoffs")
+  echo "Note: Using legacy path. Run /init-ai-docs to migrate to ai_docs/"
+fi
+
+# 3. If in worktree, also check main repo for older handoffs
 if [[ -f .git ]]; then
-  # In a worktree - search main repo
   MAIN_REPO=$(git rev-parse --git-common-dir | sed 's|/.git$||')
-  # Check ai_docs first (preferred), fall back to thoughts/shared (legacy)
   if [[ -d "$MAIN_REPO/ai_docs/handoffs" ]]; then
-    HANDOFF_DIR="$MAIN_REPO/ai_docs/handoffs"
-  elif [[ -d "$MAIN_REPO/thoughts/shared/handoffs" ]]; then
-    HANDOFF_DIR="$MAIN_REPO/thoughts/shared/handoffs"
-    echo "Note: Using legacy path. Run /init-ai-docs to migrate to ai_docs/"
+    HANDOFF_DIRS+=("$MAIN_REPO/ai_docs/handoffs")
+    echo "Also searching main repo at: $MAIN_REPO/ai_docs/handoffs"
   fi
-else
-  # In main repo
-  if [[ -d "ai_docs/handoffs" ]]; then
-    HANDOFF_DIR="ai_docs/handoffs"
-  elif [[ -d "thoughts/shared/handoffs" ]]; then
-    HANDOFF_DIR="thoughts/shared/handoffs"
-    echo "Note: Using legacy path. Run /init-ai-docs to migrate to ai_docs/"
+  if [[ -d "$MAIN_REPO/thoughts/shared/handoffs" ]]; then
+    HANDOFF_DIRS+=("$MAIN_REPO/thoughts/shared/handoffs")
   fi
 fi
 ```
@@ -52,7 +55,8 @@ fi
 If no path is provided, prompt the user:
 
 - Ask for the path to the handoff file
-- List available handoffs in `$HANDOFF_DIR` using `ls -t` (most recent first)
+- List available handoffs from ALL search locations using `ls -t` (most recent first)
+- Prefer worktree handoffs over main repo when paths conflict
 
 ## Three-Phase Process
 

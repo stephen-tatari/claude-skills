@@ -23,20 +23,13 @@ Bootstrap the `ai_docs/` directory structure for decision records following the 
 
 ### Step 1: Detect Repository Root
 
-Handle both main repos and worktrees:
-
 ```bash
-# Detect if in a worktree (worktrees have .git as a file, main repo has .git as directory)
-if [[ -f .git ]]; then
-  # In a worktree - find main repo
-  REPO_ROOT=$(git rev-parse --git-common-dir | sed 's|/.git$||')
-  echo "Detected worktree. Creating ai_docs in main repository at: $REPO_ROOT"
-else
-  # In main repo
-  REPO_ROOT=$(git rev-parse --show-toplevel)
-fi
+# Always use current repo root (works in both worktree and main repo)
+REPO_ROOT=$(git rev-parse --show-toplevel)
 AI_DOCS="$REPO_ROOT/ai_docs"
 ```
+
+**Note:** In worktrees, ai_docs/ is created in the worktree directory. Documents committed there will merge to main with your branch.
 
 ### Step 2: Create Directory Structure
 

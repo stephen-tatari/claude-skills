@@ -34,20 +34,12 @@ First, invoke the `init-ai-docs` skill to ensure the directory structure exists:
 
 ### Step 2: Detect Repository and Output Path
 
-**IMPORTANT: Handoffs must be created in the main repository, never in worktrees.**
-
 ```bash
-# Detect if in a worktree (worktrees have .git as a file, main repo has .git as directory)
-if [[ -f .git ]]; then
-  # In a worktree - find main repo
-  MAIN_REPO=$(git rev-parse --git-common-dir | sed 's|/.git$||')
-  HANDOFF_DIR="$MAIN_REPO/ai_docs/handoffs"
-  echo "Detected worktree. Creating handoff in main repository at: $HANDOFF_DIR"
-else
-  # In main repo
-  HANDOFF_DIR="ai_docs/handoffs"
-fi
+# Always use current repo location (works in both worktree and main repo)
+HANDOFF_DIR="ai_docs/handoffs"
 ```
+
+**Note:** In worktrees, handoffs are created in the worktree's ai_docs/ directory. **Commit the handoff so it merges with your branch.**
 
 ### Step 3: Generate Filename
 
@@ -137,7 +129,12 @@ mkdir -p "$HANDOFF_DIR"
 After completion, inform the user:
 
 ```text
-Handoff created! Resume in a new session with:
+Handoff created at: ai_docs/handoffs/<filename>.md
+
+IMPORTANT: Commit this handoff so it merges with your branch:
+git add ai_docs/handoffs/<filename>.md && git commit -m "docs: add handoff for <description>"
+
+Resume in a new session with:
 /resume-handoff ai_docs/handoffs/<filename>.md
 ```
 
@@ -146,7 +143,7 @@ Handoff created! Resume in a new session with:
 - **More information, not less** - The template is a minimum; add more as needed
 - **Be thorough and precise** - Include both top-level objectives and lower-level details
 - **Avoid excessive code snippets** - Prefer `/path/to/file.ext:line` references
-- **Handoffs go in main repo** - Never create in worktrees (they'll be lost on cleanup)
+- **Commit handoffs in worktrees** - They merge to main with your branch
 
 ## Alternatives
 
