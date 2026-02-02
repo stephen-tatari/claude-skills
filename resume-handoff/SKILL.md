@@ -50,12 +50,26 @@ if [[ -f .git ]]; then
     HANDOFF_DIRS+=("$MAIN_REPO/thoughts/shared/handoffs")
   fi
 fi
+
+# 4. If in main repo, also check worktrees for handoffs created there
+if [[ -d .git ]]; then
+  # This is main repo (not worktree), check for worktrees
+  while IFS= read -r worktree_line; do
+    # Parse worktree path (first field before space)
+    worktree_path=$(echo "$worktree_line" | awk '{print $1}')
+    if [[ -d "$worktree_path/ai_docs/handoffs" ]]; then
+      HANDOFF_DIRS+=("$worktree_path/ai_docs/handoffs")
+      echo "Also searching worktree at: $worktree_path/ai_docs/handoffs"
+    fi
+  done < <(git worktree list | tail -n +2)  # Skip main worktree (first line)
+fi
 ```
 
 If no path is provided, prompt the user:
 
 - Ask for the path to the handoff file
 - List available handoffs from ALL search locations using `ls -t` (most recent first)
+- Show which location each handoff is from (current, legacy, main repo, or worktree)
 - Prefer worktree handoffs over main repo when paths conflict
 
 ## Three-Phase Process
