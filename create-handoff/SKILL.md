@@ -126,16 +126,16 @@ mkdir -p "$HANDOFF_DIR"
 
 ## Response
 
-After completion, inform the user:
+After completion, inform the user (where `<full-path>` is the absolute path to the current working directory):
 
 ```text
-Handoff created at: ai_docs/handoffs/<filename>.md
+Handoff created at: <full-path>/ai_docs/handoffs/<filename>.md
 
 IMPORTANT: Commit this handoff so it merges with your branch:
 git add ai_docs/handoffs/<filename>.md && git commit -m "docs: add handoff for <description>"
 
 Resume in a new session with:
-/resume-handoff ai_docs/handoffs/<filename>.md
+/resume-handoff <full-path>/ai_docs/handoffs/<filename>.md
 ```
 
 ## Key Principles
