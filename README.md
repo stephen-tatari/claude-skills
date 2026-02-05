@@ -55,6 +55,10 @@ git commit -m "Add skill-name skill"
 - **[github-actions](github-actions/)**: Troubleshoot GitHub Actions - find workflow runs, download logs, analyze failures
 - **[loki-debug](loki-debug/)**: Debug Kubernetes pod failures by querying logs from Loki
 
+### Code Analysis
+
+- **[codex](codex/)**: Execute OpenAI Codex CLI for code analysis, refactoring, and automated editing
+
 ### Project Management
 
 - **[jira](jira/)**: Manage Jira tickets - search, view, create, update status, add comments
