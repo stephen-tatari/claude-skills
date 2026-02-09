@@ -31,9 +31,16 @@ AI_DOCS="$REPO_ROOT/ai_docs"
 
 **Note:** In worktrees, ai_docs/ is created in the worktree directory. Documents committed there will merge to main with your branch.
 
-### Step 2: Create Directory Structure
+### Step 2: Detect Mode and Create Directory Structure
 
-Create directories idempotently:
+Read the project's AGENTS.md (or CLAUDE.md) to determine the mode:
+
+1. Read `$REPO_ROOT/AGENTS.md` (or `CLAUDE.md`)
+2. Find the "Decision Records" section
+3. If it references a central repo for plans/research → **central mode**
+4. Otherwise → **local mode**
+
+**Local mode** (plans/research stored in this repo):
 
 ```bash
 mkdir -p "$AI_DOCS/plans"
@@ -42,7 +49,35 @@ mkdir -p "$AI_DOCS/handoffs"
 mkdir -p "$AI_DOCS/templates"
 ```
 
-### Step 3: Create index.md (if missing)
+**Central mode** (plans/research in a separate repo):
+
+```bash
+# Only create handoffs locally — plans/research live in the central repo
+mkdir -p "$AI_DOCS/handoffs"
+```
+
+After creating the local handoffs directory, verify the central repo:
+
+1. Extract the central repo path from AGENTS.md (e.g., `../<ai-docs-repo>/`)
+2. Check if the path exists
+3. If it exists, check for expected structure: `plans/`, `research/`, `templates/`, `index.md`
+4. If the path is missing or the structure is incomplete:
+   - Warn user: "Central repo at `<path>` appears uninitialized or incomplete"
+   - Suggest: "Run `/init-central-docs` in that repo to set it up"
+5. Proceed with local setup regardless (handoffs are always local)
+
+### Step 3: Suggest .gitignore for Handoffs
+
+Check if `ai_docs/handoffs/` is already gitignored. If not, suggest adding:
+
+```gitignore
+# AI session handoffs — ephemeral by default
+ai_docs/handoffs/
+```
+
+This keeps handoffs local by default. Users can force-add specific handoffs with `git add -f` when they want to preserve them.
+
+### Step 4: Create index.md (if missing)
 
 Only create if it doesn't exist. Ask the user for the project name first.
 
@@ -57,6 +92,7 @@ status: active
 topic: "[Project Name] Decision Records Index"
 author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
+ai_model:                                # optional: which model
 ---
 
 # Project: [Project Name]
@@ -95,7 +131,7 @@ ai_assisted: true
 - [What this project explicitly doesn't handle]
 ```
 
-### Step 4: Create Template Files (if missing)
+### Step 5: Create Template Files (if missing)
 
 Only create templates that don't already exist.
 
@@ -112,10 +148,16 @@ topic: "[Feature Name] Implementation Plan"
 # Accountability
 author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
+ai_model:                                # optional: which model
 
 # Linking
-related_pr:
+related_prs: []
 related_issue:
+
+# Project
+project:                                 # Logical project/service name
+repo:                                    # GitHub org/repo
+# repos: []                             # Uncomment for cross-repo docs
 
 # Classification
 tags: []
@@ -199,10 +241,16 @@ topic: "[Topic] Research"
 # Accountability
 author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
+ai_model:                                # optional: which model
 
 # Linking
-related_pr:
+related_prs: []
 related_issue:
+
+# Project
+project:                                 # Logical project/service name
+repo:                                    # GitHub org/repo
+# repos: []                             # Uncomment for cross-repo docs
 
 # Classification
 tags: []
@@ -265,6 +313,7 @@ topic: "[Feature/Task Name] Implementation"
 # Accountability
 author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
+ai_model:                                # optional: which model
 
 # Git context
 git_commit: [short hash]
@@ -310,21 +359,39 @@ Include explicit file paths.]
 [Additional context - relevant codebase sections, docs, etc.]
 ```
 
-### Step 5: Suggest AGENTS.md Integration
+### Step 6: Suggest AGENTS.md Integration
 
-After creating the structure, suggest adding this to the project's AGENTS.md:
+After creating the structure, suggest adding one of these to the project's AGENTS.md:
+
+**Option A — Central repo** (when plans/research are centralized):
+
+```markdown
+## Decision Records
+
+Plans and research for this project are centralized at:
+**Repository:** ../<ai-docs-repo>/
+
+Find this project's docs:
+rg -l "repo: org/<this-repo>" ../<ai-docs-repo>/plans/
+
+### Handoffs (Local)
+Session handoffs live in `ai_docs/handoffs/` (gitignored by default).
+```
+
+**Option B — Local** (when plans/research are in this repo):
 
 ```markdown
 ## Decision Records
 
 Before implementing significant changes, check `ai_docs/` for existing context:
+- **Plans** (`ai_docs/plans/`): Active implementation plans
+- **Research** (`ai_docs/research/`): Technical investigations and ADRs
+- **Handoffs** (`ai_docs/handoffs/`): Session continuity notes (gitignored by default)
 
-- **Plans** (`ai_docs/plans/`): Active implementation plans. Check before starting work on a feature area.
-- **Research** (`ai_docs/research/`): Technical investigations and ADRs. Check before making architectural decisions.
-- **Handoffs** (`ai_docs/handoffs/`): Session continuity notes. Check when resuming paused work.
-
-Start at `ai_docs/index.md` for project overview and active documents.
+Start at `ai_docs/index.md` for project overview.
 ```
+
+Ask the user which option applies to their setup.
 
 ## Idempotency
 
@@ -338,6 +405,8 @@ This skill is safe to run multiple times:
 
 After completion, inform the user:
 
+**Local mode:**
+
 ```text
 ai_docs/ structure initialized at: $AI_DOCS
 
@@ -345,8 +414,20 @@ Created:
 - ai_docs/index.md (edit to add project details)
 - ai_docs/plans/
 - ai_docs/research/
-- ai_docs/handoffs/
+- ai_docs/handoffs/ (gitignored by default)
 - ai_docs/templates/{plan,research,handoff}.md
 
+Consider adding the Decision Records snippet to your AGENTS.md.
+```
+
+**Central mode:**
+
+```text
+ai_docs/ structure initialized at: $AI_DOCS
+
+Created:
+- ai_docs/handoffs/ (gitignored by default)
+
+Plans and research are managed in the central repo.
 Consider adding the Decision Records snippet to your AGENTS.md.
 ```
