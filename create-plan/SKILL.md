@@ -20,6 +20,12 @@ Create structured implementation plan documents in `ai_docs/plans/` following th
 
 **Announce at start:** "I'm using the create-plan skill to create an implementation plan."
 
+**CRITICAL**: The deliverable of this skill is a MARKDOWN FILE written to disk
+using the Write tool. Always resolve the output path first (Step 2), then write
+the complete plan to that path (Step 6). If the output path is ambiguous, ask
+the user to confirm it before proceeding. Do NOT present the plan inline as
+conversation output — it MUST be written to a file.
+
 ## When to Use
 
 - Before starting significant feature work
@@ -51,16 +57,33 @@ mkdir -p ai_docs/plans ai_docs/research ai_docs/handoffs
 REPO_ROOT=$(git rev-parse --show-toplevel)
 ```
 
-Read the project's AGENTS.md (or CLAUDE.md) to determine where plans are stored:
+Determine where plans are stored by checking **multiple sources** in order. Stop as soon as a valid path is found:
 
-1. Read `$REPO_ROOT/AGENTS.md` (or `CLAUDE.md`)
-2. Find the "Decision Records" section
-3. If it references a central repo path (e.g., `../<ai-docs-repo>/plans/`):
-   - Set `PLANS_DIR` to that path
-   - Verify the directory exists; if not, warn the user
-4. If it references local `ai_docs/plans/` or no Decision Records section exists:
-   - Set `PLANS_DIR` to `ai_docs/plans/`
-   - Run `/init-ai-docs` if needed
+1. **Repo-level config**: Read `$REPO_ROOT/AGENTS.md` and `$REPO_ROOT/CLAUDE.md` (if they exist)
+2. **Parent directory config**: Read `$REPO_ROOT/../AGENTS.md` and `$REPO_ROOT/../CLAUDE.md` (if they exist) — this covers workspace-level pointers like `~/code/work/CLAUDE.md`
+3. **System context**: Check any CLAUDE.md content already loaded in conversation context (system-reminder blocks)
+
+**What to search for** (not just a "Decision Records" heading):
+
+- Paths containing `ai-docs` (e.g., `ai-docs-sre/`, `../ai-docs/plans/`)
+- Phrases like "central documentation repository", "centralized at", "central repo"
+- Explicit paths ending in `/plans/`
+- References to a shared docs directory used across repos
+
+**Once a candidate path is found:**
+
+- Resolve it to an absolute path relative to `$REPO_ROOT`
+- Verify the directory exists and contains a `plans/` subdirectory
+- Set `PLANS_DIR` to that `plans/` path
+
+**If no central repo is detected:**
+
+- Check if `$REPO_ROOT/ai_docs/plans/` exists or is configured locally
+- If so, set `PLANS_DIR` to `ai_docs/plans/` and run `/init-ai-docs` if needed
+
+**If no output location can be determined:**
+
+- **Ask the user** where plans should be stored — do NOT silently default to `ai_docs/plans/`
 
 ### Step 3: Gather Context
 
@@ -341,6 +364,10 @@ Once reviewed, choose an implementation approach:
 
 Which approach would you prefer?
 ```
+
+**STOP: Wait for the user to choose an execution option before proceeding.**
+This skill's scope ends here — implementation is a separate step. Do NOT
+auto-select an option or begin implementation.
 
 ### Related Skills
 
