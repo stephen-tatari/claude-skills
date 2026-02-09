@@ -131,7 +131,7 @@ mkdir -p "$HANDOFF_DIR"
 
 ## Response
 
-After completion, output the following — substituting the actual absolute path and filename (do NOT use placeholders or relative paths):
+After completion, output the following — substituting the actual absolute path and filename:
 
 ```text
 Handoff created at: /absolute/path/to/ai_docs/handoffs/<filename>.md
@@ -143,7 +143,7 @@ Resume in a new session with:
 /resume-handoff /absolute/path/to/ai_docs/handoffs/<filename>.md
 ```
 
-**IMPORTANT**: Use the full absolute path (e.g. `/Users/sprice/code/work/project/ai_docs/handoffs/...`). Construct it from `$FULL_PATH` captured in Step 2. Never output a relative path.
+**IMPORTANT**: Use the full absolute path (e.g. `/Users/sprice/code/work/project/ai_docs/handoffs/...`). Construct it from `$FULL_PATH` captured in Step 2.
 
 ## Key Principles
 
