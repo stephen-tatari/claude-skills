@@ -127,11 +127,6 @@ After user confirmation:
    - Documented patterns and approaches
    - Known pitfalls to avoid
    - Architectural decisions to follow
-4. **Clean up consumed handoff** — After confirming work has resumed successfully:
-   - For gitignored handoffs: delete the file
-   - For committed handoffs: leave in place (part of git history)
-   - Ask user before deleting if uncertain
-
 ## Key Principles
 
 - **Always verify** - Don't assume handoff state matches current reality
