@@ -7,6 +7,7 @@ allowed-tools:
   - Bash(mkdir:*)
   - Bash(date:*)
   - Bash(git:*)
+  - Bash(basename:*)
   - Skill
   - Task
   - Glob
@@ -57,6 +58,10 @@ First, invoke the `init-ai-docs` skill to ensure the directory structure exists:
 This is idempotent and safe to run even if structure already exists.
 
 ### Step 2: Detect Output Location
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel)
+```
 
 Read the project's AGENTS.md (or CLAUDE.md) to determine where research docs are stored:
 
@@ -169,6 +174,7 @@ Use these values in the frontmatter.
 
 **For Exploratory Research:**
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 ````markdown
 ---
 schema_version: 1
@@ -185,6 +191,7 @@ ai_model:                                # optional: which model
 # Linking
 related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
 
 # Project
 project:                                 # Logical project/service name
@@ -241,6 +248,7 @@ data_sensitivity: [public|internal|restricted]
 
 **For Decision Records (ADR):**
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 ````markdown
 ---
 schema_version: 1
@@ -257,6 +265,7 @@ ai_model:                                # optional: which model
 # Linking
 related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
 
 # Project
 project:                                 # Logical project/service name
@@ -406,6 +415,11 @@ For complex research, consider convergent review (4-5 passes until findings stab
 
 Would you like me to run convergent review on this research?
 ```
+
+### Related Skills
+
+If this research leads to implementation work, consider running
+`/create-plan` to document the implementation approach.
 
 ## Status Transitions
 

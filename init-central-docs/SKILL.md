@@ -138,6 +138,7 @@ ai_model:                    # optional
 # Linking
 related_prs: []
 related_issue:
+superseded_by:               # Link to replacement doc
 
 # Project
 project:                     # Logical project/service name
@@ -185,6 +186,7 @@ ln -sf AGENTS.md CLAUDE.md
 
 Only create templates that don't already exist.
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 **templates/plan.md:**
 
 ````markdown
@@ -203,11 +205,17 @@ ai_model:                                # optional: which model
 # Linking
 related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
 
 # Project
 project:                                 # Logical project/service name
 repo:                                    # GitHub org/repo
 # repos: []                             # Uncomment for cross-repo docs
+
+# Git Context
+git_commit: [short-sha]
+branch: [branch name]
+repository: [repo name]
 
 # Classification
 tags: []
@@ -278,6 +286,7 @@ data_sensitivity: internal
 - [ ] Check 2
 ````
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 **templates/research.md:**
 
 ```markdown
@@ -296,11 +305,17 @@ ai_model:                                # optional: which model
 # Linking
 related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
 
 # Project
 project:                                 # Logical project/service name
 repo:                                    # GitHub org/repo
 # repos: []                             # Uncomment for cross-repo docs
+
+# Git Context
+git_commit: [short-sha]
+branch: [branch name]
+repository: [repo name]
 
 # Classification
 tags: []
@@ -350,6 +365,7 @@ data_sensitivity: internal
 - [Link to source 2]
 ```
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 **templates/handoff.md:**
 
 ```markdown

@@ -6,6 +6,7 @@ allowed-tools:
   - Read
   - Bash(mkdir:*)
   - Bash(git:*)
+  - Bash(date:*)
   - Skill
 ---
 
@@ -61,6 +62,7 @@ REPO=$(basename $(git rev-parse --show-toplevel))
 
 ### Step 5: Write the Handoff Document
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 ```markdown
 ---
 schema_version: 1

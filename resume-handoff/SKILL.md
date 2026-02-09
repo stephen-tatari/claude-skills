@@ -5,9 +5,15 @@ allowed-tools:
   - Read
   - Bash(git:*)
   - Bash(ls:*)
+  - Bash(sed:*)
+  - Bash(awk:*)
+  - Bash(tail:*)
+  - Bash(echo:*)
   - Grep
   - Glob
-  - TodoWrite
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
 ---
 
 # Resume Work from Handoff Document
@@ -121,7 +127,7 @@ Present a synthesized analysis to the user:
 
 After user confirmation:
 
-1. **Create a prioritized todo list** using TodoWrite based on Action Items & Next Steps
+1. **Create prioritized tasks** using TaskCreate based on Action Items & Next Steps
 2. **Begin work** on the highest priority items
 3. **Continuously reference** the handoff document for:
    - Documented patterns and approaches
@@ -133,7 +139,7 @@ After user confirmation:
 - **Present before acting** - Get user buy-in before starting work
 - **Apply learnings** - The handoff contains valuable context; use it
 - **Read directly** - Do NOT delegate critical file reading to sub-agents
-- **Maintain continuity** - Use todo list to track progress against handoff goals
+- **Maintain continuity** - Use task list to track progress against handoff goals
 
 ## Common Scenarios
 

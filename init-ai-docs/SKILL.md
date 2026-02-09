@@ -4,6 +4,7 @@ description: Bootstrap ai_docs/ directory structure for decision records. Create
 allowed-tools:
   - Write
   - Read
+  - Edit
   - Bash(mkdir:*)
   - Bash(ls:*)
   - Bash(git:*)
@@ -38,7 +39,12 @@ Read the project's AGENTS.md (or CLAUDE.md) to determine the mode:
 1. Read `$REPO_ROOT/AGENTS.md` (or `CLAUDE.md`)
 2. Find the "Decision Records" section
 3. If it references a central repo for plans/research → **central mode**
-4. Otherwise → **local mode**
+4. If it references local `ai_docs/` or explicitly describes local mode → **local mode**
+5. If no "Decision Records" section exists → **ask the user**:
+   > "No Decision Records configuration found in AGENTS.md. Which mode should we use?"
+   > - **Local**: Plans and research stored in this repo under `ai_docs/`
+   > - **Central**: Plans and research stored in a separate shared repo
+   Use the answer for this run's directory creation.
 
 **Local mode** (plans/research stored in this repo):
 
@@ -135,6 +141,7 @@ ai_model:                                # optional: which model
 
 Only create templates that don't already exist.
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 **templates/plan.md:**
 
 ````markdown
@@ -153,11 +160,17 @@ ai_model:                                # optional: which model
 # Linking
 related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
 
 # Project
 project:                                 # Logical project/service name
 repo:                                    # GitHub org/repo
 # repos: []                             # Uncomment for cross-repo docs
+
+# Git Context
+git_commit: [short-sha]
+branch: [branch name]
+repository: [repo name]
 
 # Classification
 tags: []
@@ -228,6 +241,7 @@ data_sensitivity: internal
 - [ ] Check 2
 ````
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 **templates/research.md:**
 
 ```markdown
@@ -246,11 +260,17 @@ ai_model:                                # optional: which model
 # Linking
 related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
 
 # Project
 project:                                 # Logical project/service name
 repo:                                    # GitHub org/repo
 # repos: []                             # Uncomment for cross-repo docs
+
+# Git Context
+git_commit: [short-sha]
+branch: [branch name]
+repository: [repo name]
 
 # Classification
 tags: []
@@ -300,6 +320,7 @@ data_sensitivity: internal
 - [Link to source 2]
 ```
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 **templates/handoff.md:**
 
 ```markdown
@@ -359,9 +380,13 @@ Include explicit file paths.]
 [Additional context - relevant codebase sections, docs, etc.]
 ```
 
-### Step 6: Suggest AGENTS.md Integration
+### Step 6: Write AGENTS.md Integration
 
-After creating the structure, suggest adding one of these to the project's AGENTS.md:
+After creating the structure, offer to write the Decision Records section into the project's AGENTS.md.
+
+Based on the mode detected (or chosen) in Step 2, present the appropriate section and ask the user: "Would you like me to add the Decision Records section to AGENTS.md?"
+
+**If user accepts**, use Edit to append the appropriate section to AGENTS.md:
 
 **Option A — Central repo** (when plans/research are centralized):
 
@@ -391,7 +416,7 @@ Before implementing significant changes, check `ai_docs/` for existing context:
 Start at `ai_docs/index.md` for project overview.
 ```
 
-Ask the user which option applies to their setup.
+**If user declines**, print the section as a suggestion they can add manually later.
 
 ## Idempotency
 

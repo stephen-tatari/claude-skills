@@ -7,6 +7,7 @@ allowed-tools:
   - Bash(mkdir:*)
   - Bash(date:*)
   - Bash(git:*)
+  - Bash(basename:*)
   - Skill
   - Task
   - Glob
@@ -45,6 +46,10 @@ mkdir -p ai_docs/plans ai_docs/research ai_docs/handoffs
 ```
 
 ### Step 2: Detect Output Location
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel)
+```
 
 Read the project's AGENTS.md (or CLAUDE.md) to determine where plans are stored:
 
@@ -112,10 +117,20 @@ FILENAME="${PLANS_DIR}/${DATE}-<feature-name>.md"
 
 Example: `ai_docs/plans/2026-02-02-oauth2-implementation.md`
 
+### Step 5b: Gather Git Metadata
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel)
+GIT_COMMIT=$(git rev-parse --short HEAD)
+GIT_BRANCH=$(git branch --show-current)
+GIT_REPO=$(basename "$REPO_ROOT")
+```
+
 ### Step 6: Write the Plan Document
 
 Use this template:
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 ````markdown
 ---
 schema_version: 1
@@ -132,11 +147,17 @@ ai_model:                                # optional: which model
 # Linking
 related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
 
 # Project
 project:                                 # Logical project/service name
 repo:                                    # GitHub org/repo
 # repos: []                             # Uncomment for cross-repo docs
+
+# Git Context
+git_commit: [short-sha]
+branch: [branch name]
+repository: [repo name]
 
 # Classification
 tags: [relevant, tags]
@@ -319,6 +340,11 @@ Once reviewed, choose an implementation approach:
 
 Which approach would you prefer?
 ```
+
+### Related Skills
+
+If the plan involves a significant architectural decision, consider also running
+`/create-research` to document the ADR separately.
 
 ## Cross-Referencing
 
