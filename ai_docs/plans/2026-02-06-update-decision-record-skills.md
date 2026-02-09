@@ -46,6 +46,7 @@ Update frontmatter templates in all 5 skills to match the README schema.
 **File:** `init-ai-docs/SKILL.md`
 
 Replace in plan template (line 117-118) and research template (line 204-205):
+
 ```yaml
 # Old
 related_pr:
@@ -180,7 +181,8 @@ In both skills, add note about optional project prefix in filenames:
 Changes:
 - Line 42: Remove "Commit the handoff so it merges with your branch"
 - Lines 129-139 (Response section): Replace commit-as-default messaging with:
-  ```
+
+  ```text
   Handoff created at: <full-path>/ai_docs/handoffs/<filename>.md
 
   Handoffs are gitignored by default. To preserve beyond this session:
@@ -189,6 +191,7 @@ Changes:
   Resume in a new session with:
   /resume-handoff <full-path>/ai_docs/handoffs/<filename>.md
   ```
+
 - Line 146: Change "Commit handoffs in worktrees" → "Handoffs are gitignored by default; commit when context is worth preserving"
 - Lines 161-166: Remove "Migrating from Personal Skills" section (legacy)
 
@@ -250,6 +253,7 @@ ai_docs/handoffs/
 Replace single template with two options:
 
 **Option A — Central repo (when plans/research are centralized):**
+
 ```markdown
 ## Decision Records
 
@@ -264,6 +268,7 @@ Session handoffs live in `ai_docs/handoffs/` (gitignored by default).
 ```
 
 **Option B — Local (when plans/research are in this repo):**
+
 ```markdown
 ## Decision Records
 

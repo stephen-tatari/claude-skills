@@ -175,6 +175,7 @@ Use these values in the frontmatter.
 **For Exploratory Research:**
 
 <!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
+
 ````markdown
 ---
 schema_version: 1
@@ -249,6 +250,7 @@ data_sensitivity: [public|internal|restricted]
 **For Decision Records (ADR):**
 
 <!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
+
 ````markdown
 ---
 schema_version: 1

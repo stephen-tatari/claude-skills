@@ -42,6 +42,7 @@ Read the project's AGENTS.md (or CLAUDE.md) to determine the mode:
 4. If it references local `ai_docs/` or explicitly describes local mode → **local mode**
 5. If no "Decision Records" section exists → **ask the user**:
    > "No Decision Records configuration found in AGENTS.md. Which mode should we use?"
+   >
    > - **Local**: Plans and research stored in this repo under `ai_docs/`
    > - **Central**: Plans and research stored in a separate shared repo
    Use the answer for this run's directory creation.

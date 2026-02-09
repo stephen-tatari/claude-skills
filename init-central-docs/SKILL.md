@@ -167,14 +167,15 @@ Before committing documents:
 ## Cross-Referencing
 
 From project repos, reference docs here using relative paths:
-```
+
+```text
 ../<this-repo>/plans/2026-01-15-auth-redesign.md
 ```
 
 From docs here, reference project code using org/repo notation:
-```
+
+```text
 See implementation in org/project-name src/auth/handler.ts
-```
 ```
 
 ```bash

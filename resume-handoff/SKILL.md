@@ -133,6 +133,7 @@ After user confirmation:
    - Documented patterns and approaches
    - Known pitfalls to avoid
    - Architectural decisions to follow
+
 ## Key Principles
 
 - **Always verify** - Don't assume handoff state matches current reality

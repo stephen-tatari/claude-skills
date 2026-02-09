@@ -131,6 +131,7 @@ GIT_REPO=$(basename "$REPO_ROOT")
 Use this template:
 
 <!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
+
 ````markdown
 ---
 schema_version: 1
