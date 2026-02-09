@@ -37,6 +37,7 @@ First, invoke the `init-ai-docs` skill to ensure the directory structure exists:
 
 ```bash
 # Always use current repo location (works in both worktree and main repo)
+FULL_PATH="$(pwd)"
 HANDOFF_DIR="ai_docs/handoffs"
 ```
 
@@ -130,17 +131,19 @@ mkdir -p "$HANDOFF_DIR"
 
 ## Response
 
-After completion, inform the user (where `<full-path>` is the absolute path to the current working directory):
+After completion, output the following — substituting the actual absolute path and filename:
 
 ```text
-Handoff created at: <full-path>/ai_docs/handoffs/<filename>.md
+Handoff created at: /absolute/path/to/ai_docs/handoffs/<filename>.md
 
 Handoffs are gitignored by default. To preserve beyond this session:
 git add -f ai_docs/handoffs/<filename>.md && git commit -m "docs: add handoff for <description>"
 
 Resume in a new session with:
-/resume-handoff <full-path>/ai_docs/handoffs/<filename>.md
+/resume-handoff /absolute/path/to/ai_docs/handoffs/<filename>.md
 ```
+
+**IMPORTANT**: Use the full absolute path (e.g. `/Users/sprice/code/work/project/ai_docs/handoffs/...`). Construct it from `$FULL_PATH` captured in Step 2.
 
 ## Key Principles
 
