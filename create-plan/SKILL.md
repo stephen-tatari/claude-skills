@@ -7,6 +7,7 @@ allowed-tools:
   - Bash(mkdir:*)
   - Bash(date:*)
   - Bash(git:*)
+  - Bash(basename:*)
   - Skill
   - Task
   - Glob
@@ -41,10 +42,27 @@ This is idempotent and safe to run even if structure already exists.
 **Fallback if skill unavailable:**
 
 ```bash
-mkdir -p ai_docs/plans ai_docs/research ai_docs/logs
+mkdir -p ai_docs/plans ai_docs/research ai_docs/handoffs
 ```
 
-### Step 2: Gather Context
+### Step 2: Detect Output Location
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel)
+```
+
+Read the project's AGENTS.md (or CLAUDE.md) to determine where plans are stored:
+
+1. Read `$REPO_ROOT/AGENTS.md` (or `CLAUDE.md`)
+2. Find the "Decision Records" section
+3. If it references a central repo path (e.g., `../<ai-docs-repo>/plans/`):
+   - Set `PLANS_DIR` to that path
+   - Verify the directory exists; if not, warn the user
+4. If it references local `ai_docs/plans/` or no Decision Records section exists:
+   - Set `PLANS_DIR` to `ai_docs/plans/`
+   - Run `/init-ai-docs` if needed
+
+### Step 3: Gather Context
 
 Ask the user for:
 
@@ -53,7 +71,7 @@ Ask the user for:
 3. **Constraints**: Technical or business constraints
 4. **Alternatives**: What options were considered?
 
-### Step 3: Research Phase
+### Step 4: Research Phase
 
 **Before writing the plan, gather context systematically:**
 
@@ -73,11 +91,11 @@ Use Task tool with `subagent_type: Explore` to search in parallel (preferred) or
 
 **No open questions rule:** Research or ask the user before writing. The plan document must be complete - questions are allowed during context gathering (Step 2), but not left unresolved in the final document.
 
-### Step 4: Generate Filename
+### Step 5: Generate Filename
 
 ```bash
 DATE=$(date +%Y-%m-%d)
-FILENAME="ai_docs/plans/${DATE}-<feature-name>.md"
+FILENAME="${PLANS_DIR}/${DATE}-<feature-name>.md"
 ```
 
 **Kebab-case conversion rules** (apply manually - no external tools needed):
@@ -93,11 +111,26 @@ FILENAME="ai_docs/plans/${DATE}-<feature-name>.md"
 | "Add User Auth" | `add-user-auth` |
 | "Fix Bug #123" | `fix-bug-123` |
 
+**Naming convention:**
+- `YYYY-MM-DD-<topic>.md` (default)
+- `YYYY-MM-DD-<project>-<topic>.md` (recommended when project-specific in a central repo)
+
 Example: `ai_docs/plans/2026-02-02-oauth2-implementation.md`
 
-### Step 5: Write the Plan Document
+### Step 5b: Gather Git Metadata
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel)
+GIT_COMMIT=$(git rev-parse --short HEAD)
+GIT_BRANCH=$(git branch --show-current)
+GIT_REPO=$(basename "$REPO_ROOT")
+```
+
+### Step 6: Write the Plan Document
 
 Use this template:
+
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 
 ````markdown
 ---
@@ -110,10 +143,22 @@ topic: "[Feature Name] Implementation Plan"
 # Accountability
 author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
+ai_model:                                # optional: which model
 
 # Linking
-related_pr:
+related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
+
+# Project
+project:                                 # Logical project/service name
+repo:                                    # GitHub org/repo
+# repos: []                             # Uncomment for cross-repo docs
+
+# Git Context
+git_commit: [short-sha]
+branch: [branch name]
+repository: [repo name]
 
 # Classification
 tags: [relevant, tags]
@@ -229,7 +274,7 @@ Each task is ONE action (2-5 minutes):
 - `path/to/similar/impl.ext:50-75` - Similar pattern to follow
 ````
 
-### Step 6: Quality Checklist
+### Step 7: Quality Checklist
 
 Before finalizing the plan, verify:
 
@@ -245,9 +290,11 @@ Before finalizing the plan, verify:
 - [ ] **No secrets** or sensitive data included
 - [ ] **3 similar patterns** identified and referenced in Critical Files
 
-### Step 7: Remind About Review and Offer Execution
+### Step 8: Remind About Review and Offer Execution
 
-After creating the plan, remind the user:
+After creating the plan, remind the user with mode-appropriate messaging:
+
+**Local mode:**
 
 ```text
 Plan created at: ai_docs/plans/YYYY-MM-DD-feature-name.md
@@ -257,7 +304,22 @@ git add ai_docs/plans/YYYY-MM-DD-feature-name.md && git commit -m "docs: add pla
 
 NOTE: Human accountability is provided through PR review. Ensure the plan
 is reviewed as part of the normal PR process before merging.
+Update `related_prs` when the implementing PR is created.
+```
 
+**Central mode:**
+
+```text
+Plan created at: $PLANS_DIR/YYYY-MM-DD-feature-name.md
+
+Commit directly to the docs repo — no PR required for documentation.
+Reference this plan from the implementing code PR.
+Update `related_prs` when the implementing PR is created.
+```
+
+Then offer execution options:
+
+```text
 ## Execution Options
 
 Once reviewed, choose an implementation approach:
@@ -280,15 +342,28 @@ Once reviewed, choose an implementation approach:
 Which approach would you prefer?
 ```
 
+### Related Skills
+
+If the plan involves a significant architectural decision, consider also running
+`/create-research` to document the ADR separately.
+
 ## Cross-Referencing
 
-Reference other ai_docs using `@ai_docs/` prefix:
+Reference other decision records depending on mode:
+
+**Local mode** — use `@ai_docs/` prefix:
 
 ```markdown
 Based on constraints in @ai_docs/research/2026-01-10-auth-options.md
 ```
 
-This syntax is grep-able and parseable by AI agents.
+**Central mode** — use relative sibling paths:
+
+```markdown
+Based on constraints in ../<ai-docs-repo>/research/2026-01-10-auth-options.md
+```
+
+Both syntaxes are grep-able and parseable by AI agents.
 
 ## Task Granularity Guide
 

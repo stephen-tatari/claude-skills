@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Iterable
 import yaml
 
-EXCLUDED_DIRS = {"scripts", "docs"}
+EXCLUDED_DIRS = {"scripts", "docs", "ai_docs"}
 VALID_TOOL_NAMES = {
     "Read",
     "Write",

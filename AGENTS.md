@@ -178,18 +178,20 @@ This repository includes skills for creating decision documentation following th
 
 ### Workflow
 
-1. **Start a feature**: Run `/create-plan` to document approach before coding
-2. **Technical decisions**: Run `/create-research` to capture ADRs
-3. **Session breaks**: Run `/create-handoff` to preserve context
-4. **Resume work**: Run `/resume-handoff` to continue from where you left off
+1. **Set up docs**: Run `/init-ai-docs` (local) or `/init-central-docs` (cross-project)
+2. **Start a feature**: Run `/create-plan` to document approach before coding
+3. **Technical decisions**: Run `/create-research` to capture ADRs
+4. **Session breaks**: Run `/create-handoff` to preserve context
+5. **Resume work**: Run `/resume-handoff` to continue from where you left off
 
 ### Schema
 
 Documents follow a structured schema:
 
 - **Required**: `schema_version`, `date`, `type`, `status`, `topic`
-- **Accountability**: `author` (git user name), `ai_assisted`
-- **Linking**: `related_pr`, `related_issue`, `superseded_by`
+- **Accountability**: `author` (git user name), `ai_assisted`, `ai_model`
+- **Linking**: `related_prs`, `related_issue`, `superseded_by`
+- **Project**: `project`, `repo`
 - **Classification**: `tags`, `data_sensitivity`
 
 ### Quality Bar

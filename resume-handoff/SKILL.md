@@ -5,9 +5,15 @@ allowed-tools:
   - Read
   - Bash(git:*)
   - Bash(ls:*)
+  - Bash(sed:*)
+  - Bash(awk:*)
+  - Bash(tail:*)
+  - Bash(echo:*)
   - Grep
   - Glob
-  - TodoWrite
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
 ---
 
 # Resume Work from Handoff Document
@@ -33,25 +39,16 @@ if [[ -d "ai_docs/handoffs" ]]; then
   HANDOFF_DIRS+=("ai_docs/handoffs")
 fi
 
-# 2. Legacy path in current location
-if [[ -d "thoughts/shared/handoffs" ]]; then
-  HANDOFF_DIRS+=("thoughts/shared/handoffs")
-  echo "Note: Using legacy path. Run /init-ai-docs to migrate to ai_docs/"
-fi
-
-# 3. If in worktree, also check main repo for older handoffs
+# 2. If in worktree, also check main repo for older handoffs
 if [[ -f .git ]]; then
   MAIN_REPO=$(git rev-parse --git-common-dir | sed 's|/.git$||')
   if [[ -d "$MAIN_REPO/ai_docs/handoffs" ]]; then
     HANDOFF_DIRS+=("$MAIN_REPO/ai_docs/handoffs")
     echo "Also searching main repo at: $MAIN_REPO/ai_docs/handoffs"
   fi
-  if [[ -d "$MAIN_REPO/thoughts/shared/handoffs" ]]; then
-    HANDOFF_DIRS+=("$MAIN_REPO/thoughts/shared/handoffs")
-  fi
 fi
 
-# 4. If in main repo, also check worktrees for handoffs created there
+# 3. If in main repo, also check worktrees for handoffs created there
 if [[ -d .git ]]; then
   # This is main repo (not worktree), check for worktrees
   while IFS= read -r worktree_line; do
@@ -130,7 +127,7 @@ Present a synthesized analysis to the user:
 
 After user confirmation:
 
-1. **Create a prioritized todo list** using TodoWrite based on Action Items & Next Steps
+1. **Create prioritized tasks** using TaskCreate based on Action Items & Next Steps
 2. **Begin work** on the highest priority items
 3. **Continuously reference** the handoff document for:
    - Documented patterns and approaches
@@ -143,7 +140,7 @@ After user confirmation:
 - **Present before acting** - Get user buy-in before starting work
 - **Apply learnings** - The handoff contains valuable context; use it
 - **Read directly** - Do NOT delegate critical file reading to sub-agents
-- **Maintain continuity** - Use todo list to track progress against handoff goals
+- **Maintain continuity** - Use task list to track progress against handoff goals
 
 ## Common Scenarios
 
@@ -175,7 +172,7 @@ type: handoff
 # ... full schema fields
 ```
 
-**Legacy schema (thoughts/shared/):**
+**Legacy schema (pre-ai_docs):**
 
 ```yaml
 type: handoff
@@ -185,11 +182,3 @@ topic: ...
 ```
 
 Both have `type: handoff` so detection works. The skill should not fail on missing fields - gracefully handle whatever is present.
-
-## Migrating from Personal Skills
-
-If you have existing handoffs in `thoughts/shared/handoffs/`:
-
-1. **Option A: Keep both** - This skill searches both paths automatically
-2. **Option B: Migrate** - `mv thoughts/shared/handoffs/* ai_docs/handoffs/`
-3. **Option C: Archive** - Keep old path read-only, use ai_docs/ for new

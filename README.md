@@ -42,10 +42,11 @@ git commit -m "Add skill-name skill"
 
 ### Decision Records
 
-- **[init-ai-docs](init-ai-docs/)**: Bootstrap ai_docs/ directory structure for decision records
-- **[create-plan](create-plan/)**: Create implementation plan documents
-- **[create-research](create-research/)**: Create research notes or ADRs
-- **[create-handoff](create-handoff/)**: Create session handoff documents
+- **[init-ai-docs](init-ai-docs/)**: Bootstrap local ai_docs/ directory structure for decision records
+- **[init-central-docs](init-central-docs/)**: Bootstrap a central AI documentation repository for cross-project decision records
+- **[create-plan](create-plan/)**: Create implementation plan documents (local or central repo)
+- **[create-research](create-research/)**: Create research notes or ADRs (local or central repo)
+- **[create-handoff](create-handoff/)**: Create session handoff documents (always local, gitignored by default)
 - **[resume-handoff](resume-handoff/)**: Resume work from previous handoff documents
 
 ### DevOps & CI/CD

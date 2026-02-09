@@ -7,6 +7,7 @@ allowed-tools:
   - Bash(mkdir:*)
   - Bash(date:*)
   - Bash(git:*)
+  - Bash(basename:*)
   - Skill
   - Task
   - Glob
@@ -56,7 +57,24 @@ First, invoke the `init-ai-docs` skill to ensure the directory structure exists:
 
 This is idempotent and safe to run even if structure already exists.
 
-### Step 2: Determine Document Type
+### Step 2: Detect Output Location
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel)
+```
+
+Read the project's AGENTS.md (or CLAUDE.md) to determine where research docs are stored:
+
+1. Read `$REPO_ROOT/AGENTS.md` (or `CLAUDE.md`)
+2. Find the "Decision Records" section
+3. If it references a central repo path (e.g., `../<ai-docs-repo>/research/`):
+   - Set `RESEARCH_DIR` to that path
+   - Verify the directory exists; if not, warn the user
+4. If it references local `ai_docs/research/` or no Decision Records section exists:
+   - Set `RESEARCH_DIR` to `ai_docs/research/`
+   - Run `/init-ai-docs` if needed
+
+### Step 3: Determine Document Type
 
 Ask the user:
 
@@ -67,15 +85,15 @@ Ask the user:
 
 This affects which sections to emphasize.
 
-### Step 3: Research Phase
+### Step 4: Research Phase
 
 **Before writing the document, investigate systematically:**
 
-#### 3a: Read Mentioned Files First
+#### 4a: Read Mentioned Files First
 
 Read ALL files the user mentioned completely. Do not use limit/offset parameters. This happens in YOUR context, not delegated.
 
-#### 3b: Spawn Parallel Sub-Agents
+#### 4b: Spawn Parallel Sub-Agents
 
 Launch these Task agents **in parallel** (single message, multiple tool calls):
 
@@ -104,7 +122,7 @@ Document each with file:line references.
 Note any variations in how the pattern is applied.
 ````
 
-#### 3c: Synthesize Findings
+#### 4c: Synthesize Findings
 
 Wait for all agents to complete before proceeding. Compile:
 
@@ -113,7 +131,7 @@ Wait for all agents to complete before proceeding. Compile:
 - Pattern documentation with 3+ examples
 - Connections between components
 
-### Step 4: Gather Context
+### Step 5: Gather Context
 
 For **exploratory research**, ask:
 
@@ -128,17 +146,21 @@ For **decision records (ADR)**, ask:
 - What constraints apply?
 - Data sensitivity level
 
-### Step 5: Generate Filename
+### Step 6: Generate Filename
 
 ```bash
 DATE=$(date +%Y-%m-%d)
 # Convert topic to kebab-case
-FILENAME="ai_docs/research/${DATE}-<topic>.md"
+FILENAME="${RESEARCH_DIR}/${DATE}-<topic>.md"
 ```
+
+**Naming convention:**
+- `YYYY-MM-DD-<topic>.md` (default)
+- `YYYY-MM-DD-<project>-<topic>.md` (recommended when project-specific in a central repo)
 
 Example: `ai_docs/research/2026-02-02-auth-library-selection.md`
 
-### Step 6: Gather Git Metadata
+### Step 7: Gather Git Metadata
 
 ```bash
 GIT_COMMIT=$(git rev-parse --short HEAD)
@@ -148,9 +170,11 @@ GIT_REPO=$(basename $(git rev-parse --show-toplevel))
 
 Use these values in the frontmatter.
 
-### Step 7: Write the Document
+### Step 8: Write the Document
 
 **For Exploratory Research:**
+
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
 
 ````markdown
 ---
@@ -163,10 +187,17 @@ topic: "[Topic] Research"
 # Accountability
 author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
+ai_model:                                # optional: which model
 
 # Linking
-related_pr:
+related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
+
+# Project
+project:                                 # Logical project/service name
+repo:                                    # GitHub org/repo
+# repos: []                             # Uncomment for cross-repo docs
 
 # Git Context
 git_commit: [short-sha from git rev-parse --short HEAD]
@@ -218,6 +249,8 @@ data_sensitivity: [public|internal|restricted]
 
 **For Decision Records (ADR):**
 
+<!-- Keep in sync: templates also appear in init-ai-docs, init-central-docs, and create-*/SKILL.md -->
+
 ````markdown
 ---
 schema_version: 1
@@ -229,10 +262,17 @@ topic: "[Decision Topic] ADR"
 # Accountability
 author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
+ai_model:                                # optional: which model
 
 # Linking
-related_pr:
+related_prs: []
 related_issue:
+superseded_by:                           # Link to replacement doc if superseded
+
+# Project
+project:                                 # Logical project/service name
+repo:                                    # GitHub org/repo
+# repos: []                             # Uncomment for cross-repo docs
 
 # Git Context
 git_commit: [short-sha from git rev-parse --short HEAD]
@@ -316,7 +356,7 @@ We will use [Option X] because [rationale].
 - [Link to source 2]
 ````
 
-### Step 8: Quality Checklist
+### Step 9: Quality Checklist
 
 Before finalizing, verify:
 
@@ -331,9 +371,11 @@ Before finalizing, verify:
 - [ ] No credentials or sensitive internal URLs
 - [ ] Git metadata is populated (commit, branch, repository)
 
-### Step 9: Remind About Review Requirement
+### Step 10: Remind About Review Requirement
 
-After creating the document, remind the user:
+After creating the document, remind the user with mode-appropriate messaging:
+
+**Local mode:**
 
 ```text
 Research document created at: ai_docs/research/YYYY-MM-DD-topic.md
@@ -343,11 +385,24 @@ git add ai_docs/research/YYYY-MM-DD-topic.md && git commit -m "docs: add researc
 
 NOTE: Human accountability is provided through PR review. Ensure the document
 is reviewed as part of the normal PR process before merging.
+Update `related_prs` when the implementing PR is created.
 
 For ADRs: Update status from "Proposed" to "Accepted" after team review.
 ```
 
-### Step 10: Offer Convergent Review (Complex Research)
+**Central mode:**
+
+```text
+Research document created at: $RESEARCH_DIR/YYYY-MM-DD-topic.md
+
+Commit directly to the docs repo — no PR required for documentation.
+Reference this document from the implementing code PR.
+Update `related_prs` when the implementing PR is created.
+
+For ADRs: Update status from "Proposed" to "Accepted" after team review.
+```
+
+### Step 11: Offer Convergent Review (Complex Research)
 
 For complex or high-stakes research, offer multi-pass review:
 
@@ -362,6 +417,11 @@ For complex research, consider convergent review (4-5 passes until findings stab
 
 Would you like me to run convergent review on this research?
 ```
+
+### Related Skills
+
+If this research leads to implementation work, consider running
+`/create-plan` to document the implementation approach.
 
 ## Status Transitions
 
@@ -378,8 +438,18 @@ Proposed → Accepted → [Deprecated | Superseded]
 
 ## Cross-Referencing
 
-Reference other ai_docs using `@ai_docs/` prefix:
+Reference other decision records depending on mode:
+
+**Local mode** — use `@ai_docs/` prefix:
 
 ```markdown
 This decision builds on @ai_docs/research/2026-01-10-initial-investigation.md
 ```
+
+**Central mode** — use relative sibling paths:
+
+```markdown
+This decision builds on ../<ai-docs-repo>/research/2026-01-10-initial-investigation.md
+```
+
+Both syntaxes are grep-able and parseable by AI agents.
