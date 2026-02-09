@@ -39,7 +39,7 @@ First, invoke the `init-ai-docs` skill to ensure the directory structure exists:
 HANDOFF_DIR="ai_docs/handoffs"
 ```
 
-**Note:** In worktrees, handoffs are created in the worktree's ai_docs/ directory. **Commit the handoff so it merges with your branch.**
+**Note:** Handoffs are gitignored by default. They are ephemeral session context, not permanent documentation.
 
 ### Step 3: Generate Filename
 
@@ -72,6 +72,7 @@ topic: "[Feature/Task Name] Implementation"
 # Accountability
 author: [git-user]              # Human owner (run: git config user.name)
 ai_assisted: true
+ai_model:                                # optional: which model
 
 # Git context
 git_commit: [short hash]
@@ -131,8 +132,8 @@ After completion, inform the user (where `<full-path>` is the absolute path to t
 ```text
 Handoff created at: <full-path>/ai_docs/handoffs/<filename>.md
 
-IMPORTANT: Commit this handoff so it merges with your branch:
-git add ai_docs/handoffs/<filename>.md && git commit -m "docs: add handoff for <description>"
+Handoffs are gitignored by default. To preserve beyond this session:
+git add -f ai_docs/handoffs/<filename>.md && git commit -m "docs: add handoff for <description>"
 
 Resume in a new session with:
 /resume-handoff <full-path>/ai_docs/handoffs/<filename>.md
@@ -143,7 +144,7 @@ Resume in a new session with:
 - **More information, not less** - The template is a minimum; add more as needed
 - **Be thorough and precise** - Include both top-level objectives and lower-level details
 - **Avoid excessive code snippets** - Prefer `/path/to/file.ext:line` references
-- **Commit handoffs in worktrees** - They merge to main with your branch
+- **Handoffs are gitignored by default** - Commit when context is worth preserving
 
 ## Alternatives
 
@@ -158,19 +159,20 @@ Use full handoff documents for:
 - Handing to different environments
 - Complex multi-phase work requiring artifact references
 
-## Migrating from Personal Skills
-
-If you have existing handoffs in `thoughts/shared/handoffs/`:
-
-1. **Option A: Keep both** - `resume-handoff` searches both paths
-2. **Option B: Migrate** - `mv thoughts/shared/handoffs/* ai_docs/handoffs/`
-3. **Option C: Archive** - Keep old path read-only, use ai_docs/ for new
-
 ## Cross-Referencing
 
-Reference other ai_docs using `@ai_docs/` prefix:
+Reference other decision records depending on mode:
+
+**Local mode** — use `@ai_docs/` prefix:
 
 ```markdown
 Working on Phase 2 of @ai_docs/plans/2026-01-15-oauth2-impl.md
 Based on decisions in @ai_docs/research/2026-01-10-auth-options.md
+```
+
+**Central mode** — use relative sibling paths:
+
+```markdown
+Working on Phase 2 of ../<ai-docs-repo>/plans/2026-01-15-oauth2-impl.md
+Based on decisions in ../<ai-docs-repo>/research/2026-01-10-auth-options.md
 ```
