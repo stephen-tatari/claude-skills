@@ -18,6 +18,12 @@ allowed-tools:
 
 **Announce at start:** "I'm using the create-research skill to document [topic]."
 
+**CRITICAL**: The deliverable of this skill is a MARKDOWN FILE written to disk
+using the Write tool. Always resolve the output path first (Step 2), then write
+the complete document to that path (Step 8). If the output path is ambiguous,
+ask the user to confirm it before proceeding. Do NOT present the research
+document inline as conversation output — it MUST be written to a file.
+
 ## Mandate
 
 **Documentation only.** You must:
@@ -63,16 +69,33 @@ This is idempotent and safe to run even if structure already exists.
 REPO_ROOT=$(git rev-parse --show-toplevel)
 ```
 
-Read the project's AGENTS.md (or CLAUDE.md) to determine where research docs are stored:
+Determine where research docs are stored by checking **multiple sources** in order. Stop as soon as a valid path is found:
 
-1. Read `$REPO_ROOT/AGENTS.md` (or `CLAUDE.md`)
-2. Find the "Decision Records" section
-3. If it references a central repo path (e.g., `../<ai-docs-repo>/research/`):
-   - Set `RESEARCH_DIR` to that path
-   - Verify the directory exists; if not, warn the user
-4. If it references local `ai_docs/research/` or no Decision Records section exists:
-   - Set `RESEARCH_DIR` to `ai_docs/research/`
-   - Run `/init-ai-docs` if needed
+1. **Repo-level config**: Read `$REPO_ROOT/AGENTS.md` and `$REPO_ROOT/CLAUDE.md` (if they exist)
+2. **Parent directory config**: Read `$REPO_ROOT/../AGENTS.md` and `$REPO_ROOT/../CLAUDE.md` (if they exist) — this covers workspace-level pointers like `~/code/work/CLAUDE.md`
+3. **System context**: Check any CLAUDE.md content already loaded in conversation context (system-reminder blocks)
+
+**What to search for** (not just a "Decision Records" heading):
+
+- Paths containing `ai-docs` (e.g., `ai-docs-sre/`, `../ai-docs/research/`)
+- Phrases like "central documentation repository", "centralized at", "central repo"
+- Explicit paths ending in `/research/`
+- References to a shared docs directory used across repos
+
+**Once a candidate path is found:**
+
+- Resolve it to an absolute path relative to `$REPO_ROOT`
+- Verify the directory exists and contains a `research/` subdirectory
+- Set `RESEARCH_DIR` to that `research/` path
+
+**If no central repo is detected:**
+
+- Check if `$REPO_ROOT/ai_docs/research/` exists or is configured locally
+- If so, set `RESEARCH_DIR` to `ai_docs/research/` and run `/init-ai-docs` if needed
+
+**If no output location can be determined:**
+
+- **Ask the user** where research docs should be stored — do NOT silently default to `ai_docs/research/`
 
 ### Step 3: Determine Document Type
 
@@ -417,6 +440,10 @@ For complex research, consider convergent review (4-5 passes until findings stab
 
 Would you like me to run convergent review on this research?
 ```
+
+**STOP: Wait for the user to respond before proceeding.**
+This skill's scope ends here — implementation is a separate step. Do NOT
+auto-select an option or begin implementation work.
 
 ### Related Skills
 
