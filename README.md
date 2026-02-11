@@ -60,6 +60,10 @@ git commit -m "Add skill-name skill"
 
 - **[codex](codex/)**: Execute OpenAI Codex CLI for code analysis, refactoring, and automated editing
 
+### Quality & Review
+
+- **[convergent-review](convergent-review/)**: Run parallel review agents across 5 lenses until output converges
+
 ### Project Management
 
 - **[jira](jira/)**: Manage Jira tickets - search, view, create, update status, add comments
