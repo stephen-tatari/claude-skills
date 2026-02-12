@@ -53,7 +53,7 @@ else
 fi
 
 # Login using subshell for password (no temp files)
-argocd login argocd-cli.<cluster>.tatari.dev --username admin \
+argocd login argocd.<cluster>.tatari.dev --username admin \
   --password "$(kubectl --context <cluster> get secret -n "$ARGOCD_NS" argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)" \
   --grpc-web
 ```
