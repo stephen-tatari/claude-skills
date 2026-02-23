@@ -1,6 +1,6 @@
 ---
 name: github-actions
-description: "Detect GitHub repositories, check GitHub Actions status, find workflow runs by commit/branch/PR, download and analyze CI logs, show workflow status and timing. Use when user asks about CI failures, workflow logs, Actions status, pipeline issues, or needs to troubleshoot failed builds."
+description: "Detect GitHub repositories, check GitHub Actions status, find workflow runs, download and analyze CI logs, triage pull requests for merge readiness, identify merge blockers (CI failures, review status, pending checks, conflicts). Use when user asks about CI failures, workflow logs, Actions status, PR status, why a PR can't merge, merge blockers, or pastes a github.com/*/pull/* URL."
 model: claude-haiku-4-5-20251001
 allowed-tools:
   - Bash(gh:*)
@@ -21,6 +21,9 @@ This skill helps analyze and troubleshoot GitHub Actions workflows in the curren
 - User wants to see status of recent workflow runs
 - User needs to troubleshoot a failed commit or pull request
 - User asks about a specific workflow run
+- User pastes a GitHub PR URL (github.com/owner/repo/pull/123)
+- User asks "why can't this merge", "check my PR", "PR status", or "merge blockers"
+- User asks about review status or pending checks on a PR
 
 ## Prerequisites
 
@@ -232,6 +235,76 @@ gh run list --workflow <workflow-name> --status success --limit 1 --json databas
 gh run list --workflow <workflow-name> --status failure --limit 5 --json databaseId,headSha,createdAt
 ```
 
+## PR Triage Workflow
+
+Use this workflow when the user asks about PR status, merge readiness, or pastes a PR URL.
+
+### Step 1: Identify the PR
+
+Parse the user's input to get a PR number. Accepts a URL, number, or empty (detects from current branch):
+
+```bash
+source "$(dirname "$0")/scripts/gh_actions_helper.sh"
+PR_NUM=$(parse_pr_identifier "https://github.com/owner/repo/pull/123")
+# or: PR_NUM=$(parse_pr_identifier "")  # detect from current branch
+# or: PR_NUM=$(parse_pr_identifier "42")
+```
+
+### Step 2: Get Merge Readiness Summary
+
+Call the blocker report for a structured overview of what's blocking the PR:
+
+```bash
+get_pr_merge_blockers "$PR_NUM"
+```
+
+This reports: draft status, merge state (CLEAN/BLOCKED/DIRTY/BEHIND/UNSTABLE), review decision (APPROVED/CHANGES_REQUESTED/REVIEW_REQUIRED), pending reviewers, and CI check counts with names of failing/pending checks.
+
+### Step 3: Diagnose Blockers
+
+Based on the blocker report, drill into specifics:
+
+**CI failures** — Get run IDs from failed checks, then analyze logs with the existing function:
+
+```bash
+FAILED_RUNS=$(get_pr_failed_check_runs "$PR_NUM")
+for run_id in $FAILED_RUNS; do
+    analyze_failure_logs "$run_id"
+done
+```
+
+**Review blocks** — Get comments and review context:
+
+```bash
+get_pr_comments "$PR_NUM"
+```
+
+**Pending checks** — Use `get_pr_checks` for full detail on all checks:
+
+```bash
+get_pr_checks "$PR_NUM"
+```
+
+### Step 4: Report to User
+
+Present a structured report:
+
+```text
+PR #123: "Add user authentication" (feature-auth → main)
+Status: OPEN
+
+Blockers:
+1. [CI] Check "test-suite" failed
+   → Error: test_login.py::test_oauth_flow - ConnectionError
+   → Fix: Mock external OAuth provider in test
+2. [Review] Changes requested by @reviewer
+   → Comment: "Need error handling for token refresh"
+3. [Merge] Branch is behind main
+   → Fix: Rebase or merge main into feature branch
+
+No conflicts detected.
+```
+
 ## Helper Script
 
 Use the helper script in `scripts/gh_actions_helper.sh` for common operations:
@@ -247,6 +320,12 @@ get_latest_run_for_commit "$(git rev-parse HEAD)"
 
 # Analyze common failure patterns in logs
 analyze_failure_logs "$RUN_ID"
+
+# PR triage
+PR_NUM=$(parse_pr_identifier "https://github.com/owner/repo/pull/123")
+get_pr_merge_blockers "$PR_NUM"
+get_pr_failed_check_runs "$PR_NUM"  # → feed into analyze_failure_logs
+get_pr_comments "$PR_NUM"
 ```
 
 ## Error Handling
