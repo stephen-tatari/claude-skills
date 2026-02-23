@@ -434,4 +434,235 @@ check_latest_status() {
     esac
 }
 
+# --- PR Triage Functions ---
+
+# Global flag for cross-repo PR operations (set by parse_pr_identifier)
+REPO_FLAG=""
+
+# Normalize PR input to a PR number
+# Args: $1 = PR URL, number, or empty (detects from current branch)
+# Sets: REPO_FLAG for cross-repo URLs
+# Outputs: PR number on stdout
+# Returns: 0 on success, 1 on failure
+parse_pr_identifier() {
+    local input="$1"
+    REPO_FLAG=""
+
+    if [ -z "$input" ]; then
+        # No input — detect PR from current branch
+        local pr_number
+        pr_number=$(gh pr view --json number --jq '.number' 2>/dev/null)
+        if [ -z "$pr_number" ]; then
+            echo "Error: No PR found for current branch" >&2
+            return 1
+        fi
+        echo "$pr_number"
+        return 0
+    fi
+
+    # Check if input is a URL
+    if echo "$input" | grep -qE 'github\.com/.+/.+/pull/[0-9]+'; then
+        local pr_number owner_repo
+        pr_number=$(echo "$input" | sed -E 's#.*/pull/([0-9]+).*#\1#')
+        owner_repo=$(echo "$input" | sed -E 's#.*github\.com/([^/]+/[^/]+)/pull/.*#\1#')
+
+        # Check if this is a cross-repo URL
+        local local_repo
+        local_repo=$(detect_github_repo 2>/dev/null)
+        if [ "$owner_repo" != "$local_repo" ]; then
+            REPO_FLAG="-R $owner_repo"
+        fi
+
+        echo "$pr_number"
+        return 0
+    fi
+
+    # Check if input is a number
+    if [[ "$input" =~ ^[0-9]+$ ]]; then
+        echo "$input"
+        return 0
+    fi
+
+    echo "Error: Cannot parse PR identifier: $input" >&2
+    return 1
+}
+
+# Get PR status with merge-relevant fields
+# Args: $1 = PR number
+# Outputs: JSON with PR status fields
+get_pr_status() {
+    local pr_number="$1"
+
+    if [ -z "$pr_number" ]; then
+        echo "Error: PR number required" >&2
+        return 1
+    fi
+
+    check_gh_cli || return 1
+
+    # shellcheck disable=SC2086
+    gh pr view "$pr_number" $REPO_FLAG --json \
+        number,title,state,isDraft,mergeable,mergeStateStatus,reviewDecision,reviewRequests,latestReviews,headRefName,baseRefName,statusCheckRollup
+}
+
+# Get detailed check status for a PR
+# Args: $1 = PR number
+# Outputs: JSON array of check results
+get_pr_checks() {
+    local pr_number="$1"
+
+    if [ -z "$pr_number" ]; then
+        echo "Error: PR number required" >&2
+        return 1
+    fi
+
+    check_gh_cli || return 1
+
+    # shellcheck disable=SC2086
+    gh pr checks "$pr_number" $REPO_FLAG --json bucket,name,state,description,link,workflow 2>/dev/null
+}
+
+# Extract run IDs from failed PR checks
+# Args: $1 = PR number
+# Outputs: Space-separated run IDs (GitHub Actions only)
+get_pr_failed_check_runs() {
+    local pr_number="$1"
+
+    if [ -z "$pr_number" ]; then
+        echo "Error: PR number required" >&2
+        return 1
+    fi
+
+    local checks
+    checks=$(get_pr_checks "$pr_number") || return 1
+
+    # Extract run IDs from failed checks with Actions URLs
+    echo "$checks" | jq -r '.[] | select(.bucket == "fail") | .link // empty' \
+        | sed -nE 's#.*/actions/runs/([0-9]+).*#\1#p' \
+        | sort -u \
+        | tr '\n' ' ' \
+        | sed 's/ $//'
+}
+
+# Get PR comments and reviews
+# Args: $1 = PR number
+# Outputs: Compact JSON with comments and reviews
+get_pr_comments() {
+    local pr_number="$1"
+
+    if [ -z "$pr_number" ]; then
+        echo "Error: PR number required" >&2
+        return 1
+    fi
+
+    check_gh_cli || return 1
+
+    # shellcheck disable=SC2086
+    gh pr view "$pr_number" $REPO_FLAG --json comments,reviews \
+        | jq '{
+            comments: [.comments[] | {author: .author.login, body: .body, createdAt: .createdAt}],
+            reviews: [.reviews[] | {author: .author.login, state: .state, body: .body, submittedAt: .submittedAt}]
+        }'
+}
+
+# Generate structured merge blocker report
+# Args: $1 = PR number
+# Outputs: Human-readable blocker report
+get_pr_merge_blockers() {
+    local pr_number="$1"
+
+    if [ -z "$pr_number" ]; then
+        echo "Error: PR number required" >&2
+        return 1
+    fi
+
+    local status checks
+    status=$(get_pr_status "$pr_number") || return 1
+    checks=$(get_pr_checks "$pr_number") 2>/dev/null
+
+    local title state is_draft merge_state review_decision head_ref base_ref
+    title=$(echo "$status" | jq -r '.title')
+    state=$(echo "$status" | jq -r '.state')
+    is_draft=$(echo "$status" | jq -r '.isDraft')
+    merge_state=$(echo "$status" | jq -r '.mergeStateStatus')
+    review_decision=$(echo "$status" | jq -r '.reviewDecision')
+    head_ref=$(echo "$status" | jq -r '.headRefName')
+    base_ref=$(echo "$status" | jq -r '.baseRefName')
+
+    echo "=== PR #${pr_number}: ${title} ==="
+    echo "Branch: ${head_ref} → ${base_ref}"
+    echo "State: ${state}"
+    echo ""
+
+    local has_blockers=false
+
+    # Draft status
+    if [ "$is_draft" = "true" ]; then
+        echo "BLOCKER: PR is in draft mode"
+        has_blockers=true
+    fi
+
+    # Merge state
+    if [ "$merge_state" != "CLEAN" ] && [ "$merge_state" != "HAS_HOOKS" ]; then
+        echo "BLOCKER: Merge state is ${merge_state}"
+        if [ "$merge_state" = "DIRTY" ]; then
+            echo "  → Branch has merge conflicts that need resolution"
+        elif [ "$merge_state" = "BEHIND" ]; then
+            echo "  → Branch is behind ${base_ref} and needs to be updated"
+        elif [ "$merge_state" = "BLOCKED" ]; then
+            echo "  → Merge is blocked by branch protection rules"
+        elif [ "$merge_state" = "UNSTABLE" ]; then
+            echo "  → Some required checks are failing"
+        fi
+        has_blockers=true
+    fi
+
+    # Review decision
+    if [ "$review_decision" != "APPROVED" ] && [ "$review_decision" != "" ]; then
+        echo "BLOCKER: Review decision is ${review_decision}"
+        if [ "$review_decision" = "CHANGES_REQUESTED" ]; then
+            local reviewers
+            reviewers=$(echo "$status" | jq -r '[.latestReviews[] | select(.state == "CHANGES_REQUESTED") | .author.login] | join(", ")')
+            echo "  → Changes requested by: ${reviewers}"
+        elif [ "$review_decision" = "REVIEW_REQUIRED" ]; then
+            local pending
+            pending=$(echo "$status" | jq -r '[.reviewRequests[] | (.login // .name // .slug // "unknown")] | join(", ")')
+            if [ -n "$pending" ] && [ "$pending" != "" ]; then
+                echo "  → Pending reviewers: ${pending}"
+            fi
+        fi
+        has_blockers=true
+    fi
+
+    # CI checks
+    if [ -n "$checks" ] && [ "$checks" != "null" ] && [ "$checks" != "[]" ]; then
+        local pass_count fail_count pending_count
+        pass_count=$(echo "$checks" | jq '[.[] | select(.bucket == "pass")] | length')
+        fail_count=$(echo "$checks" | jq '[.[] | select(.bucket == "fail")] | length')
+        pending_count=$(echo "$checks" | jq '[.[] | select(.bucket == "pending")] | length')
+
+        echo ""
+        echo "CI Checks: ${pass_count} passed, ${fail_count} failed, ${pending_count} pending"
+
+        if [ "$fail_count" -gt 0 ]; then
+            echo "BLOCKER: Failing checks:"
+            echo "$checks" | jq -r '.[] | select(.bucket == "fail") | "  ✗ \(.name)"'
+            has_blockers=true
+        fi
+
+        if [ "$pending_count" -gt 0 ]; then
+            echo "Pending checks:"
+            echo "$checks" | jq -r '.[] | select(.bucket == "pending") | "  ⏳ \(.name)"'
+        fi
+    fi
+
+    echo ""
+    if [ "$has_blockers" = false ]; then
+        echo "✓ No blockers found — PR appears ready to merge"
+    else
+        echo "---"
+        echo "Run get_pr_failed_check_runs to get run IDs for CI failure analysis"
+    fi
+}
+
 # Functions are available when sourced (no export needed for bash/zsh)
