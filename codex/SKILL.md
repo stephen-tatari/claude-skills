@@ -18,7 +18,7 @@ description: Executes OpenAI Codex CLI for code analysis, refactoring, and autom
 **For every Codex task, follow this sequence**:
 
 1. ☐ **Ask user for execution parameters** via `AskUserQuestion` (single prompt):
-   - Model: `gpt-5.2`, `gpt-5.2-pro`, `gpt-5.2-codex` or default
+   - Model: `gpt-5.2`, `gpt-5.2-pro`, `gpt-5.3-codex` or default
    - Reasoning effort: `none`, `low`, `medium`, `high`, `xhigh`
 
 2. ☐ **Determine sandbox mode** based on task:
@@ -73,7 +73,7 @@ cat file.py | codex exec -m gpt-5.2 -c model_reasoning_effort="low" \
 ### Code Modification
 
 ```bash
-codex exec -m gpt-5.2-codex -c model_reasoning_effort="xhigh" -s workspace-write \
+codex exec -m gpt-5.3-codex -c model_reasoning_effort="xhigh" -s workspace-write \
   --skip-git-repo-check --full-auto "refactor @module.py to async/await" 2>/dev/null
 ```
 
@@ -103,7 +103,7 @@ codex exec --profile production -c model_reasoning_effort="high" \
 
 | Flag | Values | When to Use |
 |------|--------|-------------|
-| `-m, --model` | `gpt-5.2`, `gpt-5.2-pro`, `gpt-5.2-codex`, `gpt-5-mini`, `gpt-5-nano` | Override default model |
+| `-m, --model` | `gpt-5.2`, `gpt-5.2-pro`, `gpt-5.3-codex`, `gpt-5-mini`, `gpt-5-nano` | Override default model |
 | `-c, --config` | `key=value` | Runtime config override (repeatable) |
 | `-s, --sandbox` | `read-only`, `workspace-write`, `danger-full-access` | Set execution permissions |
 | `-a, --ask-for-approval` | `untrusted`, `on-failure`, `on-request`, `never` | Direct approval policy flag |
@@ -170,7 +170,7 @@ model_reasoning_effort = "high"
 sandbox = "read-only"
 
 [profiles.development]
-model = "gpt-5.2-codex"
+model = "gpt-5.3-codex"
 sandbox = "workspace-write"
 ```
 
@@ -416,13 +416,13 @@ If errors persist after troubleshooting:
 
 | Task Type | Recommended Model | Reasoning Effort |
 |-----------|------------------|------------------|
-| Quick syntax fixes | `gpt-5.2-codex` | none |
-| Simple refactoring | `gpt-5.2-codex` | low |
+| Quick syntax fixes | `gpt-5.3-codex` | none |
+| Simple refactoring | `gpt-5.3-codex` | low |
 | Code review | `gpt-5.2` | high |
-| Complex refactoring | `gpt-5.2-codex` | high |
+| Complex refactoring | `gpt-5.3-codex` | high |
 | Architecture analysis | `gpt-5.2` | xhigh |
 | Security audit | `gpt-5.2` | high |
-| Algorithm optimization | `gpt-5.2-codex` | xhigh |
+| Algorithm optimization | `gpt-5.3-codex` | xhigh |
 | Documentation generation | `gpt-5.2` | low |
 | Tough algorithmic problems | `gpt-5.2-pro` | xhigh |
 | High-throughput tasks | `gpt-5.2` | none |
