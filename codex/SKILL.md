@@ -40,9 +40,9 @@ description: Executes OpenAI Codex CLI for code analysis, refactoring, and autom
    - `-C <DIRECTORY>` (if changing workspace)
    - `--full-auto` (for non-interactive execution, **cannot be used with --yolo**)
 
-4. ☐ **Execute with stderr suppression**:
-   - Append `2>/dev/null` to hide thinking tokens
-   - Remove only if user requests verbose output or debugging
+4. ☐ **Execute with stderr capture**:
+   - Default to `2>&1` so errors are visible in output
+   - Only use `2>/dev/null` when user explicitly requests clean output or after confirming the command works
 
 5. ☐ **Validate execution**:
    - Check exit code (0 = success)
@@ -58,43 +58,48 @@ description: Executes OpenAI Codex CLI for code analysis, refactoring, and autom
 
 ```bash
 codex exec -m gpt-5.2 -c model_reasoning_effort="medium" -s read-only \
-  --skip-git-repo-check --full-auto "review @file.py for security issues" 2>/dev/null
+  --skip-git-repo-check --full-auto "review @file.py for security issues" 2>&1
 ```
 
-### Stdin Input (bypasses sandbox file restrictions)
+### File References
+
+Use `@path` syntax to include file contents in prompts:
 
 ```bash
-cat file.py | codex exec -m gpt-5.2 -c model_reasoning_effort="low" \
-  --skip-git-repo-check --full-auto - 2>/dev/null
+codex exec -m gpt-5.2 -c model_reasoning_effort="medium" -s read-only \
+  --skip-git-repo-check --full-auto \
+  "Review @/path/to/plan.md and @/path/to/config.md for issues" 2>&1
 ```
 
-**Note**: Stdin with `-` flag may not be supported in all Codex CLI versions.
+- Relative paths work inside git repos: `@src/module.py`
+- Use absolute paths with `--skip-git-repo-check`: `@/full/path/to/file.py`
+- Multiple files: include several `@path` references in one prompt
 
 ### Code Modification
 
 ```bash
 codex exec -m gpt-5.3-codex -c model_reasoning_effort="xhigh" -s workspace-write \
-  --skip-git-repo-check --full-auto "refactor @module.py to async/await" 2>/dev/null
+  --skip-git-repo-check --full-auto "refactor @module.py to async/await" 2>&1
 ```
 
 ### Resume Session
 
 ```bash
-echo "fix the remaining issues" | codex exec --skip-git-repo-check resume --last 2>/dev/null
+codex exec --skip-git-repo-check resume --last "fix the remaining issues" 2>&1
 ```
 
 ### Cross-Directory Execution
 
 ```bash
 codex exec -C /path/to/project -m gpt-5.2 -c model_reasoning_effort="medium" \
-  -s read-only --skip-git-repo-check --full-auto "analyze architecture" 2>/dev/null
+  -s read-only --skip-git-repo-check --full-auto "analyze architecture" 2>&1
 ```
 
 ### Profiles
 
 ```bash
 codex exec --profile production -c model_reasoning_effort="high" \
-  --full-auto "optimize performance in @app.py" 2>/dev/null
+  --full-auto "optimize performance in @app.py" 2>&1
 ```
 
 ## CLI Reference
@@ -198,9 +203,6 @@ codex exec resume --last
 # Resume with new prompt
 codex exec resume --last "continue with next steps"
 
-# Resume via stdin
-echo "new instructions" | codex exec resume --last 2>/dev/null
-
 # Resume specific session
 codex exec resume <SESSION_ID> "follow-up task"
 ```
@@ -221,6 +223,7 @@ codex exec -c model_reasoning_effort="high" resume --last
 3. Report error with context
 4. Ask user for direction via `AskUserQuestion`
 5. Retry with adjustments or escalate
+6. **Stop after 3 failed attempts** — reassess approach before continuing
 
 ### Permission Requests
 
@@ -249,11 +252,11 @@ When output contains warnings:
 
 **Solutions** (priority order):
 
-1. **Stdin piping** (recommended):
+1. **File references** (recommended):
 
    ```bash
-   cat target.py | codex exec -m gpt-5.2 -c model_reasoning_effort="medium" \
-     --skip-git-repo-check --full-auto - 2>/dev/null
+   codex exec -m gpt-5.2 -c model_reasoning_effort="medium" -s read-only \
+     --skip-git-repo-check --full-auto "review @target.py" 2>&1
    ```
 
 2. **Explicit permissions**:
@@ -261,14 +264,14 @@ When output contains warnings:
    ```bash
    codex exec -m gpt-5.2 -s read-only \
      -c 'sandbox_permissions=["disk-full-read-access"]' \
-     --skip-git-repo-check --full-auto "@file.py" 2>/dev/null
+     --skip-git-repo-check --full-auto "review @file.py" 2>&1
    ```
 
 3. **Upgrade sandbox**:
 
    ```bash
    codex exec -m gpt-5.2 -s workspace-write \
-     --skip-git-repo-check --full-auto "review @file.py" 2>/dev/null
+     --skip-git-repo-check --full-auto "review @file.py" 2>&1
    ```
 
 ### Exit Code Failures
@@ -277,7 +280,7 @@ When output contains warnings:
 
 **Diagnostic steps**:
 
-1. Remove `2>/dev/null` to see full stderr
+1. Verify stderr is captured with `2>&1` (not suppressed with `2>/dev/null`)
 2. Verify installation: `codex --version`
 3. Check configuration: `cat ~/.codex/config.toml`
 4. Test minimal command: `codex exec -m gpt-5.2 "hello world"`
@@ -320,12 +323,12 @@ When output contains warnings:
 - **workspace-write**: File modifications only
 - **danger-full-access**: Network operations, system commands (rare)
 
-### Stderr Suppression
+### Stderr Handling
 
-- **Always use `2>/dev/null`** unless:
-  - User explicitly requests thinking tokens
-  - Debugging failed commands
-  - Troubleshooting configuration issues
+- **Default to `2>&1`** to capture errors in output for visibility
+- **Use `2>/dev/null` only when**:
+  - User explicitly requests clean output without thinking tokens
+  - Command is confirmed working and output noise is undesirable
 
 ### Profile Usage
 
@@ -336,10 +339,11 @@ Create profiles for common workflows:
 - `quick`: Low reasoning, read-only
 - `security`: High reasoning, workspace-write
 
-### Stdin vs File Reference
+### File Input
 
-- **Stdin**: Single file analysis, avoids permissions
-- **File reference**: Multi-file context, codebase-wide changes
+- Use `@path` syntax for all file input: `"analyze @src/main.py and @src/utils.py"`
+- Relative paths inside git repos, absolute paths with `--skip-git-repo-check`
+- Prefer multiple `@path` references over separate commands
 
 ## Safety Guidelines
 
@@ -363,15 +367,15 @@ Create profiles for common workflows:
 codex exec --json -o result.txt -m gpt-5.2 \
   -c model_reasoning_effort="medium" \
   --skip-git-repo-check --full-auto \
-  "run security audit on changed files" 2>/dev/null
+  "run security audit on changed files" 2>&1
 ```
 
 ### Batch Processing
 
 ```bash
 for file in *.py; do
-  cat "$file" | codex exec -m gpt-5.2 -c model_reasoning_effort="low" \
-    --skip-git-repo-check --full-auto "lint and format" - 2>/dev/null
+  codex exec -m gpt-5.2 -c model_reasoning_effort="low" \
+    --skip-git-repo-check --full-auto "lint and format @$file" 2>&1
 done
 ```
 
@@ -380,11 +384,10 @@ done
 ```bash
 # Step 1: Analysis
 codex exec -m gpt-5.2 -c model_reasoning_effort="high" -s read-only \
-  --full-auto "analyze @codebase for architectural issues" 2>/dev/null
+  --full-auto "analyze @codebase for architectural issues" 2>&1
 
 # Step 2: Resume with changes
-echo "implement suggested refactoring" | \
-  codex exec -s workspace-write resume --last 2>/dev/null
+codex exec -s workspace-write resume --last "implement suggested refactoring" 2>&1
 ```
 
 ## When to Escalate
