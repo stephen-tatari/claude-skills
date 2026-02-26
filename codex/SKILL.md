@@ -339,7 +339,7 @@ Create profiles for common workflows:
 - `quick`: Low reasoning, read-only
 - `security`: High reasoning, workspace-write
 
-### File References
+### File Input
 
 - Use `@path` syntax for all file input: `"analyze @src/main.py and @src/utils.py"`
 - Relative paths inside git repos, absolute paths with `--skip-git-repo-check`
