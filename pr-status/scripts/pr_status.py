@@ -207,6 +207,100 @@ def cmd_detect_repo(_args: argparse.Namespace) -> int:
     return 0
 
 
+def filter_noise_lines(lines: list[str]) -> list[str]:
+    """Remove GitHub Actions boilerplate noise from log lines.
+
+    Keeps ##[error] lines (they carry signal). Removes group/endgroup
+    markers, debug lines, action downloads, cache messages, runner
+    version info, and progress indicators.
+    """
+    noise_patterns = [
+        re.compile(r"^##\[group\]"),
+        re.compile(r"^##\[endgroup\]"),
+        re.compile(r"^##\[debug\]"),
+        re.compile(r"^Download action repository\b"),
+        re.compile(r"^Cache restored\b"),
+        re.compile(r"^Receiving objects:\s"),
+        re.compile(r"^Resolving deltas:\s"),
+        re.compile(r"^Runner version\b"),
+        re.compile(r"^Operating System$"),
+    ]
+    result: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("##[error]"):
+            result.append(line)
+            continue
+        if any(p.search(stripped) for p in noise_patterns):
+            continue
+        result.append(line)
+    return result
+
+
+def extract_error_annotations(lines: list[str], *, context: int = 2) -> list[str]:
+    """Extract ##[error] lines with surrounding context.
+
+    Returns deduplicated lines around each error annotation.
+    """
+    if not lines:
+        return []
+
+    error_indices = [i for i, line in enumerate(lines) if "##[error]" in line]
+    if not error_indices:
+        return []
+
+    include: set[int] = set()
+    for idx in error_indices:
+        start = max(0, idx - context)
+        end = min(len(lines), idx + context + 1)
+        include.update(range(start, end))
+
+    return [lines[i] for i in sorted(include)]
+
+
+def extract_test_summary(lines: list[str]) -> list[str]:
+    """Extract test failure summaries from log lines.
+
+    Captures the pytest "short test summary info" section (concise)
+    and individual FAILED/ERROR/AssertionError lines. Avoids capturing
+    full tracebacks from the FAILURES section.
+    """
+    if not lines:
+        return []
+
+    result: list[str] = []
+
+    # Extract pytest "short test summary info" section (concise one-liners)
+    in_short_summary = False
+    for line in lines:
+        stripped = line.strip()
+        if "short test summary info" in stripped:
+            in_short_summary = True
+            result.append(line)
+            continue
+        if in_short_summary:
+            if stripped.startswith("===") or stripped.startswith("---"):
+                result.append(line)
+                break
+            result.append(line)
+
+    # Extract individual FAILED / ERROR lines not already captured
+    seen = set(result)
+    for line in lines:
+        stripped = line.strip()
+        if line in seen:
+            continue
+        if (
+            stripped.startswith("FAILED ")
+            or stripped.startswith("ERROR ")
+            or "AssertionError" in stripped
+        ):
+            result.append(line)
+            seen.add(line)
+
+    return result
+
+
 def truncate_log_lines(lines: list[str], *, head: int = 100, tail: int = 400) -> list[str]:
     """Truncate log lines keeping head and tail sections.
 
@@ -492,11 +586,34 @@ def cmd_analyze_logs(args: argparse.Namespace) -> int:
         print("No failed logs found (run may have succeeded or be in progress).")
         return 0
 
-    lines = truncate_log_lines(str(logs).split("\n"))
-    log_text = "\n".join(lines)
-    print(log_text)
+    raw_lines = str(logs).split("\n")
+
+    # Extract signal before filtering
+    error_annotations = extract_error_annotations(raw_lines)
+    test_summary = extract_test_summary(raw_lines)
+
+    # Filter noise, then truncate with tighter window
+    filtered = filter_noise_lines(raw_lines)
+    truncated = truncate_log_lines(filtered, head=50, tail=200)
+
+    # Structured output: signal first, then filtered log
+    if error_annotations:
+        print("=== Error Annotations (##[error]) ===")
+        for line in error_annotations:
+            print(line)
+        print()
+
+    if test_summary:
+        print("=== Test Failure Summary ===")
+        for line in test_summary:
+            print(line)
+        print()
+
+    print(f"=== Filtered Log ({len(truncated)} lines) ===")
+    print("\n".join(truncated))
 
     # Pattern matching
+    full_text = "\n".join(filtered)
     patterns = {
         "Permission denied": r"(?i)permission denied",
         "Command not found": r"(?i)command not found",
@@ -510,7 +627,7 @@ def cmd_analyze_logs(args: argparse.Namespace) -> int:
     print("\n=== Error Patterns ===")
     found_any = False
     for label, pat in patterns.items():
-        if re.search(pat, log_text):
+        if re.search(pat, full_text):
             print(f"  Found: {label}")
             found_any = True
     if not found_any:

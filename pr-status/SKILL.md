@@ -5,6 +5,7 @@ model: claude-haiku-4-5-20251001
 allowed-tools:
   - Bash(gh:*)
   - Bash(git:*)
+  - Bash(scripts/pr_status.py:*)
   - Read
   - Grep
 ---
@@ -12,6 +13,13 @@ allowed-tools:
 # PR Status Analyzer
 
 This skill diagnoses why a PR can't merge and reports actionable blockers.
+
+## Invocation
+
+IMPORTANT: All scripts have shebangs and are executable. Always invoke directly:
+
+- `scripts/pr_status.py <command>` (correct)
+- Do NOT use `python scripts/pr_status.py` or `python3 scripts/pr_status.py`
 
 ## When to Use This Skill
 
@@ -151,7 +159,7 @@ scripts/pr_status.py analyze-logs <run-id> https://github.com/org/repo/pull/123
 scripts/pr_status.py analyze-logs --repo org/repo <run-id>
 ```
 
-This downloads failed logs, truncates to 500 lines per failed step, and pattern-matches common errors (permission denied, test failures, timeouts, OOM, network errors, syntax errors).
+This downloads failed logs, filters GitHub Actions noise (group markers, action downloads, cache lines, progress indicators), extracts error annotations and test failure summaries, then truncates to 250 lines and pattern-matches common errors.
 
 ## Error Handling
 
