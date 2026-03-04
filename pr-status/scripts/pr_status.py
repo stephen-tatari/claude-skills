@@ -1043,12 +1043,11 @@ def build_parser() -> argparse.ArgumentParser:
         prog="pr_status",
         description="PR Status Analyzer — diagnose why a PR can't merge",
     )
-    parser.add_argument("--repo", help="Repository in owner/repo format")
-
     sub = parser.add_subparsers(dest="command", required=True)
 
     def _add_pr_subcommand(name: str, help_text: str, *, has_pr: bool = True, has_format: bool = True) -> argparse.ArgumentParser:
         p = sub.add_parser(name, help=help_text)
+        p.add_argument("--repo", help="Repository in owner/repo format")
         if has_format:
             p.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
         if has_pr:
@@ -1066,6 +1065,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # analyze-logs has run_id instead of pr, but accepts optional pr for repo detection
     p = sub.add_parser("analyze-logs", help="Download and analyze failed CI logs")
+    p.add_argument("--repo", help="Repository in owner/repo format")
     p.add_argument("run_id", help="GitHub Actions run ID")
     p.add_argument("pr", nargs="?", help="PR number or URL (for repo detection)")
 

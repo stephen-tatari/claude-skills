@@ -361,11 +361,30 @@ class TestBuildParser:
         args = parser.parse_args(["diagnose", "123"])
         assert args.pr == "123"
 
-    def test_global_repo_flag(self):
+    def test_repo_flag_on_subcommand(self):
         parser = build_parser()
-        args = parser.parse_args(["--repo", "org/repo", "status", "42"])
+        args = parser.parse_args(["status", "--repo", "org/repo", "42"])
         assert args.repo == "org/repo"
         assert args.command == "status"
+        assert args.pr == "42"
+
+    def test_repo_flag_on_diagnose(self):
+        parser = build_parser()
+        args = parser.parse_args(["diagnose", "--repo", "org/repo", "42"])
+        assert args.repo == "org/repo"
+        assert args.command == "diagnose"
+        assert args.pr == "42"
+
+    def test_repo_flag_on_analyze_logs(self):
+        parser = build_parser()
+        args = parser.parse_args(["analyze-logs", "--repo", "org/repo", "789"])
+        assert args.repo == "org/repo"
+        assert args.run_id == "789"
+
+    def test_repo_default_is_none(self):
+        parser = build_parser()
+        args = parser.parse_args(["checks", "42"])
+        assert args.repo is None
 
     def test_subcommand_format_flag(self):
         parser = build_parser()
@@ -456,10 +475,10 @@ class TestCmdAnalyzeLogsRepoResolution:
 
     def _make_args(self, run_id: str, pr: str | None = None, repo: str | None = None):
         parser = build_parser()
-        argv = []
+        argv = ["analyze-logs"]
         if repo:
             argv.extend(["--repo", repo])
-        argv.extend(["analyze-logs", run_id])
+        argv.append(run_id)
         if pr:
             argv.append(pr)
         return parser.parse_args(argv)
