@@ -133,7 +133,7 @@ def extract_run_ids_from_checks(checks: list[dict]) -> list[str]:
         m = re.search(r"/actions/runs/(\d+)", link)
         if m:
             run_ids.add(m.group(1))
-    return sorted(run_ids)
+    return sorted(run_ids, key=int)
 
 
 def merge_state_message(state: str) -> str:
@@ -154,7 +154,7 @@ def find_error_keywords(body: str) -> list[str]:
         ("error", r"(?i)\berror\b"),
         ("failure", r"(?i)\bfail(?:ed|ure|ing)?\b"),
         ("warning", r"(?i)\bwarn(?:ing)?\b"),
-        ("conflict", r"(?i)\bconflict\b"),
+        ("conflict", r"(?i)\bconflicts?\b"),
         ("deprecated", r"(?i)\bdeprecated?\b"),
         ("vulnerability", r"(?i)\bvulnerabilit(?:y|ies)\b"),
         ("breaking", r"(?i)\bbreaking\b"),
