@@ -360,10 +360,21 @@ class TestBuildParser:
         assert args.repo == "org/repo"
         assert args.command == "status"
 
-    def test_global_format_flag(self):
+    def test_subcommand_format_flag(self):
         parser = build_parser()
-        args = parser.parse_args(["--format", "json", "checks"])
+        args = parser.parse_args(["checks", "--format", "json"])
         assert args.format == "json"
+
+    def test_format_flag_with_pr_url(self):
+        parser = build_parser()
+        args = parser.parse_args(["diagnose", "--format", "json", "https://github.com/o/r/pull/1"])
+        assert args.format == "json"
+        assert args.pr == "https://github.com/o/r/pull/1"
+
+    def test_format_default_is_text(self):
+        parser = build_parser()
+        args = parser.parse_args(["diagnose"])
+        assert args.format == "text"
 
 
 if __name__ == "__main__":

@@ -636,6 +636,45 @@ def cmd_missing_checks(args: argparse.Namespace) -> int:
     return 0
 
 
+def _fetch_unresolved_thread_count(pr: str, repo: str | None) -> int:
+    """Fetch count of unresolved review threads via GraphQL."""
+    effective_repo = repo or _detect_local_repo()
+    if not effective_repo:
+        return 0
+    owner, name = effective_repo.split("/")
+    query = """
+    query($owner: String!, $name: String!, $pr: Int!) {
+      repository(owner: $owner, name: $name) {
+        pullRequest(number: $pr) {
+          reviewThreads(first: 100) {
+            nodes { isResolved }
+          }
+        }
+      }
+    }
+    """
+    try:
+        result = subprocess.run(
+            ["gh", "api", "graphql",
+             "-F", f"owner={owner}", "-F", f"name={name}", "-F", f"pr={pr}",
+             "-f", f"query={query}"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0:
+            return 0
+        data = json.loads(result.stdout)
+        threads = (
+            data.get("data", {})
+            .get("repository", {})
+            .get("pullRequest", {})
+            .get("reviewThreads", {})
+            .get("nodes", [])
+        )
+        return sum(1 for t in threads if not t.get("isResolved", True))
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, RuntimeError):
+        return 0
+
+
 def cmd_diagnose(args: argparse.Namespace) -> int:
     """Full blocker report — the primary command."""
     pr, repo = _resolve_pr(args)
@@ -646,7 +685,7 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
         "pr", "view", pr, "--json",
         "number,title,state,isDraft,mergeable,mergeStateStatus,"
         "reviewDecision,reviewRequests,latestReviews,"
-        "headRefName,baseRefName,statusCheckRollup,reviewThreads",
+        "headRefName,baseRefName,statusCheckRollup",
         repo=repo,
     )
 
@@ -713,14 +752,13 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
             "fix": "Request review or wait for pending reviewers",
         })
 
-    # 4. Unresolved review threads
-    threads = pr_data.get("reviewThreads") or []
-    unresolved = [t for t in threads if not t.get("isResolved", True)]
-    if unresolved:
+    # 4. Unresolved review threads (via GraphQL — not available in gh pr view --json)
+    unresolved_count = _fetch_unresolved_thread_count(pr, repo)
+    if unresolved_count > 0:
         blockers.append({
             "type": "unresolved_threads",
-            "count": len(unresolved),
-            "message": f"{len(unresolved)} unresolved review thread(s)",
+            "count": unresolved_count,
+            "message": f"{unresolved_count} unresolved review thread(s)",
             "fix": "Resolve all review conversations",
         })
 
@@ -869,50 +907,32 @@ def build_parser() -> argparse.ArgumentParser:
         description="PR Status Analyzer — diagnose why a PR can't merge",
     )
     parser.add_argument("--repo", help="Repository in owner/repo format")
-    parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
-    # diagnose
-    p = sub.add_parser("diagnose", help="Full blocker report (primary command)")
-    p.add_argument("pr", nargs="?", help="PR number or URL")
+    def _add_pr_subcommand(name: str, help_text: str, *, has_pr: bool = True, has_format: bool = True) -> argparse.ArgumentParser:
+        p = sub.add_parser(name, help=help_text)
+        if has_format:
+            p.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
+        if has_pr:
+            p.add_argument("pr", nargs="?", help="PR number or URL")
+        return p
 
-    # status
-    p = sub.add_parser("status", help="PR metadata")
-    p.add_argument("pr", nargs="?", help="PR number or URL")
+    _add_pr_subcommand("diagnose", "Full blocker report (primary command)")
+    _add_pr_subcommand("status", "PR metadata")
+    _add_pr_subcommand("checks", "Detailed check results")
+    _add_pr_subcommand("comments", "All PR comments and reviews")
+    _add_pr_subcommand("bot-comments", "Bot comments with error keywords")
+    _add_pr_subcommand("failed-runs", "Extract run IDs from failed checks")
+    _add_pr_subcommand("required-checks", "Branch protection required checks")
+    _add_pr_subcommand("missing-checks", "Compare required vs actual checks")
 
-    # checks
-    p = sub.add_parser("checks", help="Detailed check results")
-    p.add_argument("pr", nargs="?", help="PR number or URL")
-
-    # comments
-    p = sub.add_parser("comments", help="All PR comments and reviews")
-    p.add_argument("pr", nargs="?", help="PR number or URL")
-
-    # bot-comments
-    p = sub.add_parser("bot-comments", help="Bot comments with error keywords")
-    p.add_argument("pr", nargs="?", help="PR number or URL")
-
-    # failed-runs
-    p = sub.add_parser("failed-runs", help="Extract run IDs from failed checks")
-    p.add_argument("pr", nargs="?", help="PR number or URL")
-
-    # analyze-logs
+    # analyze-logs has run_id instead of pr
     p = sub.add_parser("analyze-logs", help="Download and analyze failed CI logs")
     p.add_argument("run_id", help="GitHub Actions run ID")
 
-    # required-checks
-    p = sub.add_parser("required-checks", help="Branch protection required checks")
-    p.add_argument("pr", nargs="?", help="PR number or URL")
-
-    # missing-checks
-    p = sub.add_parser("missing-checks", help="Compare required vs actual checks")
-    p.add_argument("pr", nargs="?", help="PR number or URL")
-
-    # check-cli
+    # Utility commands (no format, no pr)
     sub.add_parser("check-cli", help="Verify gh auth and repo access")
-
-    # detect-repo
     sub.add_parser("detect-repo", help="Detect GitHub repo from git remote")
 
     return parser
