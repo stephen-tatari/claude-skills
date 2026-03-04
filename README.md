@@ -53,7 +53,7 @@ git commit -m "Add skill-name skill"
 
 - **[tatari-turbolift](tatari-turbolift/)**: Automate bulk code changes across GitHub repositories using turbolift
 - **[argocd-ops](argocd-ops/)**: Manage ArgoCD applications - sync status, refresh, trigger jobs, toggle settings
-- **[github-actions](github-actions/)**: Troubleshoot GitHub Actions - find workflow runs, download logs, analyze failures
+- **[pr-status](pr-status/)**: Analyze PR merge readiness - diagnose blockers, CI failures, reviews, missing checks, bot comments
 - **[loki-debug](loki-debug/)**: Debug Kubernetes pod failures by querying logs from Loki
 
 ### Code Analysis
