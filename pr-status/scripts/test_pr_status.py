@@ -633,18 +633,21 @@ class TestExtractErrorAnnotations:
 # ---------------------------------------------------------------------------
 
 class TestExtractTestSummary:
-    def test_extracts_pytest_failures_section(self):
+    def test_extracts_short_test_summary_section(self):
         lines = [
             "collecting ...",
             "=== FAILURES ===",
-            "FAILED test_foo.py::test_bar - AssertionError",
+            "lots of traceback here",
             "=== short test summary info ===",
             "FAILED test_foo.py::test_bar",
             "=== 1 failed, 5 passed ===",
             "more stuff",
         ]
         result = extract_test_summary(lines)
+        assert any("short test summary info" in l for l in result)
         assert "FAILED test_foo.py::test_bar" in result
+        # Should NOT include the full traceback
+        assert "lots of traceback here" not in result
 
     def test_extracts_failed_lines(self):
         lines = [

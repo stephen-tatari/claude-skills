@@ -261,30 +261,32 @@ def extract_error_annotations(lines: list[str], *, context: int = 2) -> list[str
 def extract_test_summary(lines: list[str]) -> list[str]:
     """Extract test failure summaries from log lines.
 
-    Looks for pytest FAILURES sections, FAILED lines, ERROR lines,
-    and AssertionError occurrences.
+    Captures the pytest "short test summary info" section (concise)
+    and individual FAILED/ERROR/AssertionError lines. Avoids capturing
+    full tracebacks from the FAILURES section.
     """
     if not lines:
         return []
 
     result: list[str] = []
 
-    # Extract pytest FAILURES section
-    in_failures = False
+    # Extract pytest "short test summary info" section (concise one-liners)
+    in_short_summary = False
     for line in lines:
         stripped = line.strip()
-        if "=== FAILURES ===" in stripped:
-            in_failures = True
-        if in_failures:
+        if "short test summary info" in stripped:
+            in_short_summary = True
             result.append(line)
-            if stripped.startswith("===") and "passed" in stripped:
+            continue
+        if in_short_summary:
+            if stripped.startswith("===") or stripped.startswith("---"):
+                result.append(line)
                 break
-            if "=== short test summary info ===" in stripped:
-                continue
+            result.append(line)
 
     # Extract individual FAILED / ERROR lines not already captured
     seen = set(result)
-    for i, line in enumerate(lines):
+    for line in lines:
         stripped = line.strip()
         if line in seen:
             continue
