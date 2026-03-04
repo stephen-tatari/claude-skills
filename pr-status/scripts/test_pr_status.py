@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import pytest
 
+from unittest.mock import patch
+
 from pr_status import (
     build_parser,
     classify_bot,
+    cmd_analyze_logs,
     extract_run_ids_from_checks,
     find_error_keywords,
     is_stale_approval,
@@ -439,6 +442,64 @@ class TestTruncateLogLines:
         assert len(result) == 51  # 1 separator + 50 tail
         assert "150 lines truncated" in result[0]
         assert result[-1] == "line 199"
+
+
+# ---------------------------------------------------------------------------
+# cmd_analyze_logs — repo resolution
+# ---------------------------------------------------------------------------
+
+class TestCmdAnalyzeLogsRepoResolution:
+    """Verify that cmd_analyze_logs passes the correct repo to run_gh."""
+
+    def _make_args(self, run_id: str, pr: str | None = None, repo: str | None = None):
+        parser = build_parser()
+        argv = []
+        if repo:
+            argv.extend(["--repo", repo])
+        argv.extend(["analyze-logs", run_id])
+        if pr:
+            argv.append(pr)
+        return parser.parse_args(argv)
+
+    @patch("pr_status.run_gh", return_value="some log output")
+    @patch("pr_status._detect_local_repo", return_value="local/repo")
+    def test_pr_url_extracts_cross_repo(self, mock_local, mock_gh):
+        """PR URL from a different repo should override local repo."""
+        args = self._make_args("789", pr="https://github.com/org/other/pull/42")
+        cmd_analyze_logs(args)
+        mock_gh.assert_called_once_with(
+            "run", "view", "789", "--log-failed", repo="org/other", timeout=60,
+        )
+
+    @patch("pr_status.run_gh", return_value="some log output")
+    @patch("pr_status._detect_local_repo", return_value="local/repo")
+    def test_repo_flag_takes_priority(self, mock_local, mock_gh):
+        """--repo flag should take priority over PR URL extraction."""
+        args = self._make_args("789", pr="https://github.com/org/other/pull/42", repo="flag/repo")
+        cmd_analyze_logs(args)
+        mock_gh.assert_called_once_with(
+            "run", "view", "789", "--log-failed", repo="flag/repo", timeout=60,
+        )
+
+    @patch("pr_status.run_gh", return_value="some log output")
+    @patch("pr_status._detect_local_repo", return_value="local/repo")
+    def test_no_pr_no_flag_falls_back_to_local(self, mock_local, mock_gh):
+        """No --repo, no PR URL should fall back to local repo detection."""
+        args = self._make_args("789")
+        cmd_analyze_logs(args)
+        mock_gh.assert_called_once_with(
+            "run", "view", "789", "--log-failed", repo="local/repo", timeout=60,
+        )
+
+    @patch("pr_status.run_gh", return_value="some log output")
+    @patch("pr_status._detect_local_repo", return_value=None)
+    def test_no_pr_no_flag_no_local_passes_none(self, mock_local, mock_gh):
+        """No repo context at all should pass None (gh uses CWD)."""
+        args = self._make_args("789")
+        cmd_analyze_logs(args)
+        mock_gh.assert_called_once_with(
+            "run", "view", "789", "--log-failed", repo=None, timeout=60,
+        )
 
 
 if __name__ == "__main__":
