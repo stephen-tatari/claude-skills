@@ -15,7 +15,10 @@ from pr_status import (
     build_parser,
     classify_bot,
     cmd_analyze_logs,
+    extract_error_annotations,
     extract_run_ids_from_checks,
+    extract_test_summary,
+    filter_noise_lines,
     find_error_keywords,
     is_stale_approval,
     merge_state_message,
@@ -500,6 +503,184 @@ class TestCmdAnalyzeLogsRepoResolution:
         mock_gh.assert_called_once_with(
             "run", "view", "789", "--log-failed", repo=None, timeout=60,
         )
+
+
+# ---------------------------------------------------------------------------
+# filter_noise_lines
+# ---------------------------------------------------------------------------
+
+class TestFilterNoiseLines:
+    def test_removes_group_markers(self):
+        lines = [
+            "##[group]Run actions/checkout@v4",
+            "actual content",
+            "##[endgroup]",
+        ]
+        result = filter_noise_lines(lines)
+        assert result == ["actual content"]
+
+    def test_removes_debug_lines(self):
+        lines = ["##[debug]Some debug info", "real output"]
+        result = filter_noise_lines(lines)
+        assert result == ["real output"]
+
+    def test_removes_action_downloads(self):
+        lines = [
+            "Download action repository 'actions/checkout@v4' (SHA:abc123)",
+            "real output",
+        ]
+        result = filter_noise_lines(lines)
+        assert result == ["real output"]
+
+    def test_removes_cache_restored(self):
+        lines = ["Cache restored from key: linux-pip-abc123", "test output"]
+        result = filter_noise_lines(lines)
+        assert result == ["test output"]
+
+    def test_removes_progress_indicators(self):
+        lines = [
+            "Receiving objects:  45% (100/222)",
+            "Resolving deltas:  100% (50/50)",
+            "actual output",
+        ]
+        result = filter_noise_lines(lines)
+        assert result == ["actual output"]
+
+    def test_removes_runner_version(self):
+        lines = [
+            "Runner version 2.321.0",
+            "Operating System",
+            "actual content",
+        ]
+        result = filter_noise_lines(lines)
+        assert result == ["actual content"]
+
+    def test_preserves_error_lines(self):
+        lines = [
+            "##[group]Run tests",
+            "##[error]Process completed with exit code 1",
+            "##[endgroup]",
+            "FAILED tests/test_foo.py::test_bar",
+        ]
+        result = filter_noise_lines(lines)
+        assert "##[error]Process completed with exit code 1" in result
+        assert "FAILED tests/test_foo.py::test_bar" in result
+
+    def test_empty_input(self):
+        assert filter_noise_lines([]) == []
+
+    def test_all_noise_returns_empty(self):
+        lines = [
+            "##[group]Setup",
+            "##[endgroup]",
+            "##[debug]foo",
+        ]
+        assert filter_noise_lines(lines) == []
+
+
+# ---------------------------------------------------------------------------
+# extract_error_annotations
+# ---------------------------------------------------------------------------
+
+class TestExtractErrorAnnotations:
+    def test_extracts_error_with_context(self):
+        lines = [
+            "line 0",
+            "line 1",
+            "line 2",
+            "##[error]Something failed",
+            "line 4",
+            "line 5",
+            "line 6",
+        ]
+        result = extract_error_annotations(lines)
+        assert "##[error]Something failed" in result
+        # Context lines before
+        assert "line 1" in result
+        assert "line 2" in result
+        # Context lines after
+        assert "line 4" in result
+        assert "line 5" in result
+
+    def test_no_errors_returns_empty(self):
+        lines = ["all good", "no problems"]
+        assert extract_error_annotations(lines) == []
+
+    def test_multiple_errors_merged_context(self):
+        lines = [f"line {i}" for i in range(10)]
+        lines[3] = "##[error]first error"
+        lines[5] = "##[error]second error"
+        result = extract_error_annotations(lines)
+        assert "##[error]first error" in result
+        assert "##[error]second error" in result
+
+    def test_error_at_start(self):
+        lines = ["##[error]fail", "line 1", "line 2"]
+        result = extract_error_annotations(lines)
+        assert "##[error]fail" in result
+
+    def test_error_at_end(self):
+        lines = ["line 0", "line 1", "##[error]fail"]
+        result = extract_error_annotations(lines)
+        assert "##[error]fail" in result
+
+    def test_empty_input(self):
+        assert extract_error_annotations([]) == []
+
+
+# ---------------------------------------------------------------------------
+# extract_test_summary
+# ---------------------------------------------------------------------------
+
+class TestExtractTestSummary:
+    def test_extracts_pytest_failures_section(self):
+        lines = [
+            "collecting ...",
+            "=== FAILURES ===",
+            "FAILED test_foo.py::test_bar - AssertionError",
+            "=== short test summary info ===",
+            "FAILED test_foo.py::test_bar",
+            "=== 1 failed, 5 passed ===",
+            "more stuff",
+        ]
+        result = extract_test_summary(lines)
+        assert "FAILED test_foo.py::test_bar" in result
+
+    def test_extracts_failed_lines(self):
+        lines = [
+            "some output",
+            "FAILED tests/test_a.py::test_one",
+            "FAILED tests/test_b.py::test_two",
+            "more output",
+        ]
+        result = extract_test_summary(lines)
+        assert "FAILED tests/test_a.py::test_one" in result
+        assert "FAILED tests/test_b.py::test_two" in result
+
+    def test_extracts_assertion_errors(self):
+        lines = [
+            "normal line",
+            "AssertionError: expected 1 got 2",
+            "normal line",
+        ]
+        result = extract_test_summary(lines)
+        assert any("AssertionError" in l for l in result)
+
+    def test_no_test_output(self):
+        lines = ["all good", "nothing failed"]
+        assert extract_test_summary(lines) == []
+
+    def test_empty_input(self):
+        assert extract_test_summary([]) == []
+
+    def test_extracts_generic_error_fail_lines(self):
+        lines = [
+            "normal output",
+            "ERROR tests/test_foo.py::test_bar",
+            "normal output",
+        ]
+        result = extract_test_summary(lines)
+        assert any("ERROR" in l for l in result)
 
 
 if __name__ == "__main__":
