@@ -113,7 +113,13 @@ def parse_pr_identifier(value: str | None, local_repo: str | None = None) -> tup
 
 
 def classify_bot(login: str) -> bool:
-    """Return True if login looks like a bot account."""
+    """Return True if login looks like a bot account.
+
+    Catches GitHub App bots (renovate[bot], dependabot[bot], etc.)
+    but not service-account bots using regular user accounts
+    (e.g. codecov-commenter). Intentional: suffix check avoids
+    maintaining a hardcoded bot list.
+    """
     return login.endswith("[bot]")
 
 
@@ -144,24 +150,26 @@ def merge_state_message(state: str) -> str:
 
 def find_error_keywords(body: str) -> list[str]:
     """Return error-related keywords found in a comment body."""
-    patterns = [
-        r"(?i)\berror\b",
-        r"(?i)\bfail(?:ed|ure|ing)?\b",
-        r"(?i)\bwarn(?:ing)?\b",
-        r"(?i)\bconflict\b",
-        r"(?i)\bdeprecated?\b",
-        r"(?i)\bvulnerabilit(?:y|ies)\b",
-        r"(?i)\bbreaking\b",
+    keyword_patterns: list[tuple[str, str]] = [
+        ("error", r"(?i)\berror\b"),
+        ("failure", r"(?i)\bfail(?:ed|ure|ing)?\b"),
+        ("warning", r"(?i)\bwarn(?:ing)?\b"),
+        ("conflict", r"(?i)\bconflict\b"),
+        ("deprecated", r"(?i)\bdeprecated?\b"),
+        ("vulnerability", r"(?i)\bvulnerabilit(?:y|ies)\b"),
+        ("breaking", r"(?i)\bbreaking\b"),
     ]
     found = []
-    for pat in patterns:
+    for label, pat in keyword_patterns:
         if re.search(pat, body):
-            found.append(re.sub(r"\(.+\)", "", pat).strip(r"\b").lower().rstrip("?"))
+            found.append(label)
     return found
 
 
-def is_stale_approval(approval_time_str: str, head_commit_time_str: str) -> bool:
+def is_stale_approval(approval_time_str: str | None, head_commit_time_str: str | None) -> bool:
     """Return True if approval predates the head commit."""
+    if not approval_time_str or not head_commit_time_str:
+        return False
     try:
         approved = datetime.fromisoformat(approval_time_str.replace("Z", "+00:00"))
         committed = datetime.fromisoformat(head_commit_time_str.replace("Z", "+00:00"))

@@ -5,7 +5,6 @@ model: claude-haiku-4-5-20251001
 allowed-tools:
   - Bash(gh:*)
   - Bash(git:*)
-  - Bash(uv:*)
   - Read
   - Grep
 ---
@@ -27,7 +26,7 @@ This skill diagnoses why a PR can't merge and reports actionable blockers.
 Verify `gh` CLI is available and authenticated:
 
 ```bash
-uv run --script scripts/pr_status.py check-cli
+scripts/pr_status.py check-cli
 ```
 
 ### Authentication and Account Switching
@@ -45,9 +44,9 @@ Common authentication issues:
 The `diagnose` command is the main entry point. It runs all checks and produces a structured blocker report:
 
 ```bash
-uv run --script scripts/pr_status.py diagnose 123
-uv run --script scripts/pr_status.py diagnose https://github.com/org/repo/pull/456
-uv run --script scripts/pr_status.py diagnose  # detect from current branch
+scripts/pr_status.py diagnose 123
+scripts/pr_status.py diagnose https://github.com/org/repo/pull/456
+scripts/pr_status.py diagnose  # detect from current branch
 ```
 
 ### What Diagnose Covers
@@ -76,39 +75,39 @@ After running `diagnose`, use these commands for deeper investigation:
 
 ```bash
 # Get run IDs from failed checks
-uv run --script scripts/pr_status.py failed-runs 123
+scripts/pr_status.py failed-runs 123
 
 # Analyze logs for a specific run
-uv run --script scripts/pr_status.py analyze-logs 789012
+scripts/pr_status.py analyze-logs 789012
 ```
 
 ### Review and Comment Context
 
 ```bash
 # All comments and reviews
-uv run --script scripts/pr_status.py comments 123
+scripts/pr_status.py comments 123
 
 # Bot comments only (renovate[bot], dependabot[bot], etc.)
-uv run --script scripts/pr_status.py bot-comments 123
+scripts/pr_status.py bot-comments 123
 ```
 
 ### Check Details
 
 ```bash
 # Full check results with required vs optional
-uv run --script scripts/pr_status.py checks 123
+scripts/pr_status.py checks 123
 
 # Branch protection required checks
-uv run --script scripts/pr_status.py required-checks 123
+scripts/pr_status.py required-checks 123
 
 # Compare required vs actual — find what's missing
-uv run --script scripts/pr_status.py missing-checks 123
+scripts/pr_status.py missing-checks 123
 ```
 
 ### PR Metadata
 
 ```bash
-uv run --script scripts/pr_status.py status 123
+scripts/pr_status.py status 123
 ```
 
 ## Cross-Repo Support
@@ -116,8 +115,8 @@ uv run --script scripts/pr_status.py status 123
 Pass `--repo owner/repo` for PRs in different repos, or use a full URL:
 
 ```bash
-uv run --script scripts/pr_status.py diagnose --repo org/other-repo 42
-uv run --script scripts/pr_status.py diagnose https://github.com/org/other-repo/pull/42
+scripts/pr_status.py diagnose --repo org/other-repo 42
+scripts/pr_status.py diagnose https://github.com/org/other-repo/pull/42
 ```
 
 ## Output Formats
@@ -125,17 +124,17 @@ uv run --script scripts/pr_status.py diagnose https://github.com/org/other-repo/
 Use `--format json` for machine-readable output (default is `text`):
 
 ```bash
-uv run --script scripts/pr_status.py diagnose 123 --format json
+scripts/pr_status.py diagnose 123 --format json
 ```
 
 ## Utility Commands
 
 ```bash
 # Verify gh auth and repo access
-uv run --script scripts/pr_status.py check-cli
+scripts/pr_status.py check-cli
 
 # Detect GitHub repo from git remote
-uv run --script scripts/pr_status.py detect-repo
+scripts/pr_status.py detect-repo
 ```
 
 ## Standalone Workflow Functions
@@ -144,7 +143,7 @@ For CI troubleshooting outside of PR context:
 
 ```bash
 # Analyze a specific GitHub Actions run
-uv run --script scripts/pr_status.py analyze-logs <run-id>
+scripts/pr_status.py analyze-logs <run-id>
 ```
 
 This downloads failed logs, truncates to 500 lines per failed step, and pattern-matches common errors (permission denied, test failures, timeouts, OOM, network errors, syntax errors).
