@@ -480,7 +480,7 @@ def cmd_analyze_logs(args: argparse.Namespace) -> int:
     pr_input = getattr(args, "pr", None)
     local_repo = _detect_local_repo()
     _, repo_override = parse_pr_identifier(pr_input, local_repo)
-    repo = args.repo or repo_override
+    repo = args.repo or repo_override or local_repo
 
     try:
         logs = run_gh("run", "view", run_id, "--log-failed", repo=repo, timeout=60)

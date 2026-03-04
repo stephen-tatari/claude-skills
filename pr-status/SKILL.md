@@ -77,8 +77,9 @@ After running `diagnose`, use these commands for deeper investigation:
 # Get run IDs from failed checks
 scripts/pr_status.py failed-runs 123
 
-# Analyze logs for a specific run
-scripts/pr_status.py analyze-logs 789012
+# Analyze logs for a specific run (pass PR URL for cross-repo context)
+scripts/pr_status.py analyze-logs 789012 https://github.com/org/repo/pull/123
+# or: scripts/pr_status.py analyze-logs --repo org/repo 789012
 ```
 
 ### Review and Comment Context
@@ -144,6 +145,10 @@ For CI troubleshooting outside of PR context:
 ```bash
 # Analyze a specific GitHub Actions run
 scripts/pr_status.py analyze-logs <run-id>
+
+# For runs in a different repo than CWD, pass repo context
+scripts/pr_status.py analyze-logs <run-id> https://github.com/org/repo/pull/123
+scripts/pr_status.py analyze-logs --repo org/repo <run-id>
 ```
 
 This downloads failed logs, truncates to 500 lines per failed step, and pattern-matches common errors (permission denied, test failures, timeouts, OOM, network errors, syntax errors).
