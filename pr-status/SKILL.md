@@ -77,13 +77,14 @@ scripts/pr_status.py diagnose  # detect from current branch
 
 ## Drilling Into Specific Areas
 
-After running `diagnose`, use these commands for deeper investigation:
+After running `diagnose`, use these commands for deeper investigation.
+All subcommands accept PR URLs or `--repo owner/repo` for cross-repo context:
 
 ### CI Failures
 
 ```bash
 # Get run IDs from failed checks
-scripts/pr_status.py failed-runs 123
+scripts/pr_status.py failed-runs https://github.com/org/repo/pull/123
 
 # Analyze logs for a specific run (pass PR URL for cross-repo context)
 scripts/pr_status.py analyze-logs 789012 https://github.com/org/repo/pull/123
@@ -94,37 +95,38 @@ scripts/pr_status.py analyze-logs 789012 https://github.com/org/repo/pull/123
 
 ```bash
 # All comments and reviews
-scripts/pr_status.py comments 123
+scripts/pr_status.py comments https://github.com/org/repo/pull/123
 
 # Bot comments only (renovate[bot], dependabot[bot], etc.)
-scripts/pr_status.py bot-comments 123
+scripts/pr_status.py bot-comments https://github.com/org/repo/pull/123
 ```
 
 ### Check Details
 
 ```bash
 # Full check results with required vs optional
-scripts/pr_status.py checks 123
+scripts/pr_status.py checks https://github.com/org/repo/pull/123
 
 # Branch protection required checks
-scripts/pr_status.py required-checks 123
+scripts/pr_status.py required-checks https://github.com/org/repo/pull/123
 
 # Compare required vs actual — find what's missing
-scripts/pr_status.py missing-checks 123
+scripts/pr_status.py missing-checks https://github.com/org/repo/pull/123
 ```
 
 ### PR Metadata
 
 ```bash
-scripts/pr_status.py status 123
+scripts/pr_status.py status https://github.com/org/repo/pull/123
 ```
 
 ## Cross-Repo Support
 
-Pass `--repo owner/repo` for PRs in different repos, or use a full URL:
+All subcommands accept `--repo owner/repo` or a full PR URL for cross-repo work:
 
 ```bash
 scripts/pr_status.py diagnose --repo org/other-repo 42
+scripts/pr_status.py checks --repo org/other-repo 42
 scripts/pr_status.py diagnose https://github.com/org/other-repo/pull/42
 ```
 
