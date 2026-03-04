@@ -17,6 +17,7 @@ from pr_status import (
     is_stale_approval,
     merge_state_message,
     parse_pr_identifier,
+    truncate_log_lines,
 )
 
 
@@ -375,6 +376,69 @@ class TestBuildParser:
         parser = build_parser()
         args = parser.parse_args(["diagnose"])
         assert args.format == "text"
+
+    def test_analyze_logs_accepts_optional_pr(self):
+        parser = build_parser()
+        args = parser.parse_args(["analyze-logs", "12345", "https://github.com/org/repo/pull/99"])
+        assert args.run_id == "12345"
+        assert args.pr == "https://github.com/org/repo/pull/99"
+
+    def test_analyze_logs_run_id_only(self):
+        parser = build_parser()
+        args = parser.parse_args(["analyze-logs", "12345"])
+        assert args.run_id == "12345"
+        assert args.pr is None
+
+
+# ---------------------------------------------------------------------------
+# truncate_log_lines
+# ---------------------------------------------------------------------------
+
+class TestTruncateLogLines:
+    def test_short_logs_returned_unchanged(self):
+        lines = [f"line {i}" for i in range(50)]
+        result = truncate_log_lines(lines)
+        assert result == lines
+
+    def test_long_logs_keep_head_and_tail(self):
+        lines = [f"line {i}" for i in range(1000)]
+        result = truncate_log_lines(lines)
+        # First 100 lines preserved
+        assert result[0] == "line 0"
+        assert result[99] == "line 99"
+        # Separator with count
+        assert result[100] == "--- 500 lines truncated ---"
+        # Last 400 lines preserved
+        assert result[-1] == "line 999"
+        assert result[-400] == "line 600"
+
+    def test_exactly_500_lines_no_truncation(self):
+        lines = [f"line {i}" for i in range(500)]
+        result = truncate_log_lines(lines)
+        assert result == lines
+
+    def test_501_lines_triggers_truncation(self):
+        lines = [f"line {i}" for i in range(501)]
+        result = truncate_log_lines(lines)
+        assert len(result) == 501  # 100 + 1 separator + 400
+
+    def test_empty_input(self):
+        assert truncate_log_lines([]) == []
+
+    def test_tail_zero_returns_head_only(self):
+        lines = [f"line {i}" for i in range(200)]
+        result = truncate_log_lines(lines, head=50, tail=0)
+        assert len(result) == 51  # 50 head + 1 separator
+        assert result[0] == "line 0"
+        assert result[49] == "line 49"
+        assert "150 lines truncated" in result[50]
+
+    def test_head_zero_returns_tail_only(self):
+        lines = [f"line {i}" for i in range(200)]
+        result = truncate_log_lines(lines, head=0, tail=50)
+        assert len(result) == 51  # 1 separator + 50 tail
+        assert "150 lines truncated" in result[0]
+        assert result[-1] == "line 199"
 
 
 if __name__ == "__main__":

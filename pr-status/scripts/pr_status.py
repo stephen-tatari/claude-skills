@@ -207,6 +207,22 @@ def cmd_detect_repo(_args: argparse.Namespace) -> int:
     return 0
 
 
+def truncate_log_lines(lines: list[str], *, head: int = 100, tail: int = 400) -> list[str]:
+    """Truncate log lines keeping head and tail sections.
+
+    Errors typically appear at the end of CI logs, so we keep the last
+    ``tail`` lines plus the first ``head`` lines for setup context.
+    Both ``head`` and ``tail`` must be non-negative.
+    """
+    total = head + tail
+    if len(lines) <= total:
+        return lines
+    skipped = len(lines) - total
+    head_part = lines[:head] if head else []
+    tail_part = lines[-tail:] if tail else []
+    return head_part + [f"--- {skipped} lines truncated ---"] + tail_part
+
+
 def _detect_local_repo() -> str | None:
     """Detect local repo silently, return owner/repo or None."""
     try:
@@ -459,7 +475,12 @@ def cmd_failed_runs(args: argparse.Namespace) -> int:
 def cmd_analyze_logs(args: argparse.Namespace) -> int:
     """Download and pattern-match failed CI logs."""
     run_id = args.run_id
-    repo = args.repo
+
+    # Resolve repo: from PR arg, --repo flag, or local git remote
+    pr_input = getattr(args, "pr", None)
+    local_repo = _detect_local_repo()
+    _, repo_override = parse_pr_identifier(pr_input, local_repo)
+    repo = args.repo or repo_override
 
     try:
         logs = run_gh("run", "view", run_id, "--log-failed", repo=repo, timeout=60)
@@ -471,8 +492,7 @@ def cmd_analyze_logs(args: argparse.Namespace) -> int:
         print("No failed logs found (run may have succeeded or be in progress).")
         return 0
 
-    # Truncate to 500 lines per conceptual block
-    lines = str(logs).split("\n")[:500]
+    lines = truncate_log_lines(str(logs).split("\n"))
     log_text = "\n".join(lines)
     print(log_text)
 
@@ -927,9 +947,10 @@ def build_parser() -> argparse.ArgumentParser:
     _add_pr_subcommand("required-checks", "Branch protection required checks")
     _add_pr_subcommand("missing-checks", "Compare required vs actual checks")
 
-    # analyze-logs has run_id instead of pr
+    # analyze-logs has run_id instead of pr, but accepts optional pr for repo detection
     p = sub.add_parser("analyze-logs", help="Download and analyze failed CI logs")
     p.add_argument("run_id", help="GitHub Actions run ID")
+    p.add_argument("pr", nargs="?", help="PR number or URL (for repo detection)")
 
     # Utility commands (no format, no pr)
     sub.add_parser("check-cli", help="Verify gh auth and repo access")
