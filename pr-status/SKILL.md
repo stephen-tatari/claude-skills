@@ -17,6 +17,7 @@ This skill diagnoses why a PR can't merge and reports actionable blockers.
 ## Invocation
 
 IMPORTANT: All scripts have shebangs and are executable. Always invoke directly:
+
 - `scripts/pr_status.py <command>` (correct)
 - Do NOT use `python scripts/pr_status.py` or `python3 scripts/pr_status.py`
 
