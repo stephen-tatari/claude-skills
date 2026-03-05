@@ -42,20 +42,14 @@ Ask the user for:
 
 ### Step 2: Login to ArgoCD
 
-Determine the ArgoCD namespace and login:
+Login via SSO:
 
 ```bash
-# Determine namespace (ops uses argocd-infra, others use argocd)
-if [ "<cluster>" = "ops" ]; then
-  ARGOCD_NS="argocd-infra"
-else
-  ARGOCD_NS="argocd"
-fi
+# Determine server
+ARGOCD_SERVER="argocd.<cluster>.tatari.dev"
 
-# Login using subshell for password (no temp files)
-argocd login argocd.<cluster>.tatari.dev --username admin \
-  --password "$(kubectl --context <cluster> get secret -n "$ARGOCD_NS" argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)" \
-  --grpc-web
+# Login via SSO
+argocd login "$ARGOCD_SERVER" --sso --grpc-web
 ```
 
 ### Step 3: Perform Operations
@@ -163,11 +157,11 @@ kubectl --context <cluster> get job "$JOB_NAME" -n <namespace> \
 # Verify cluster context exists
 kubectl config get-contexts | grep <cluster>
 
-# Check if secret exists
-kubectl --context <cluster> get secret -n argocd argocd-initial-admin-secret
+# Ensure a browser is available for the SSO flow
+# If running headless or over SSH, SSO login will not work
 
-# For ops cluster, check argocd-infra namespace
-kubectl --context ops get secret -n argocd-infra argocd-initial-admin-secret
+# If the default SSO port conflicts, specify an alternative
+argocd login argocd.<cluster>.tatari.dev --sso --grpc-web --sso-port 8085
 ```
 
 ### App not found
