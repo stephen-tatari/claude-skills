@@ -159,9 +159,6 @@ kubectl config get-contexts | grep <cluster>
 
 # Ensure a browser is available for the SSO flow
 # If running headless or over SSH, SSO login will not work
-
-# If the default SSO port conflicts, specify an alternative
-argocd login argocd.<cluster>.tatari.dev --sso --grpc-web --sso-port 8085
 ```
 
 ### App not found
