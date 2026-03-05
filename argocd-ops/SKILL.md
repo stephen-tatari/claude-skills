@@ -1,6 +1,6 @@
 ---
 name: argocd-ops
-description: Manage ArgoCD applications via CLI - verify sync status, trigger jobs from cronjobs, refresh apps, and toggle auto-sync/self-heal settings. Use when deploying, debugging sync issues, or running manual jobs in ArgoCD-managed clusters.
+description: Operate existing ArgoCD applications via the argocd CLI — check sync status, refresh or hard-refresh apps, look up Application names from ApplicationSets, toggle auto-sync and self-heal, and log into ArgoCD via SSO. Use this skill whenever the user mentions ArgoCD sync status, ArgoCD app refresh, ArgoCD login, disabling or enabling auto-sync or self-heal, looking up ArgoCD applications, or checking if a deploy has synced. This is for day-to-day ArgoCD operations, not for installing ArgoCD, writing ApplicationSet manifests, configuring RBAC, or setting up notifications.
 model: claude-haiku-4-5-20251001
 allowed-tools:
   - Bash(argocd:*)
