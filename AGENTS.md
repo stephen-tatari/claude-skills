@@ -1,227 +1,40 @@
-# Claude Code Skills Repository
+# AGENTS.md
 
-This repository contains a collection of reusable Skills for AI coding agents, specifically designed for use with Claude Code.
+This file provides guidance to Claude Code when working in this repository.
+`CLAUDE.md` is a symlink to this file.
 
-## Repository Structure
+## What This Repo Is
 
-Each subdirectory in this repository represents a single Skill:
+A collection of reusable Claude Code skills. Each top-level directory with a `SKILL.md` is a skill.
+
+## Repo Layout
 
 ```text
 claude-skills/
-├── skill-name-1/
-│   ├── SKILL.md          # Required: Skill definition and instructions
-│   ├── reference.md      # Optional: Additional reference material
-│   └── scripts/          # Optional: Supporting scripts and templates
-├── skill-name-2/
-│   └── SKILL.md
-└── ...
+├── {skill-name}/
+│   ├── SKILL.md       # Skill definition (YAML frontmatter + instructions)
+│   ├── reference.md   # Optional reference material
+│   └── scripts/       # Optional helper scripts
+├── scripts/           # CI validation helpers
+├── README.md          # User-facing docs and skill catalog
+└── AGENTS.md          # This file (CLAUDE.md symlinks here)
 ```
 
-## What Are Skills?
-
-Skills are modular capabilities that extend AI coding agent functionality with specialized, reusable features tailored to specific workflows. They are:
-
-- **Model-invoked**: The agent autonomously decides when to use them based on the user's request and the Skill's description
-- **Focused**: Each Skill should handle one specific capability
-- **Portable**: Can be shared via git for team collaboration
-
-## Creating a New Skill
-
-### 1. Create a Directory
-
-```bash
-mkdir your-skill-name
-cd your-skill-name
-```
-
-**Naming conventions:**
-
-- Use lowercase letters, numbers, and hyphens only
-- Maximum 64 characters
-- Be descriptive but concise
-
-### 2. Create SKILL.md
-
-Every Skill requires a `SKILL.md` file with YAML frontmatter:
-
-```yaml
----
-name: your-skill-name
-description: Clear explanation of what it does and when to use it (max 1024 chars)
----
-
-# Detailed Instructions
-
-Provide comprehensive instructions here for the AI agent to follow when
-this Skill is invoked.
-
-## When to Use
-
-Describe the specific scenarios or trigger phrases that should activate
-this Skill.
-
-## Implementation Steps
-
-Detail the steps the agent should follow, referencing any supporting
-files with relative paths.
-```
-
-**Critical Requirements:**
-
-- `name`: Must match directory name, lowercase with hyphens only
-- `description`: This is crucial - agents use it to decide when to invoke the Skill
-- Use valid YAML syntax (no tabs, proper indentation)
-- Write specific, concrete trigger terms in the description
-
-### 3. Add Supporting Files (Optional)
-
-Organize additional resources alongside SKILL.md:
-
-```text
-your-skill-name/
-├── SKILL.md
-├── reference.md           # Reference documentation
-├── templates/             # Template files
-│   └── config.template
-└── scripts/               # Helper scripts
-    └── process.py
-```
-
-Reference these from SKILL.md using relative paths. Agents load them progressively to manage context efficiently.
-
-### 4. Restrict Tools (Optional)
-
-Limit which tools the agent can use within the Skill by adding `allowed-tools` to frontmatter:
-
-```yaml
----
-name: read-only-analyzer
-description: Analyzes code without making modifications
-allowed-tools: Read, Grep, Glob
----
-```
-
-Common tool sets:
-
-- Read-only: `Read, Grep, Glob, Bash`
-- File operations: `Read, Write, Edit`
-- Full access: Omit `allowed-tools` field
-
-## Best Practices
-
-### Writing Effective Descriptions
-
-The description field is the most important part of your Skill. It determines when agents will use it.
-
-**Good description:**
-> "Analyze GitHub Actions workflow files for performance issues, security vulnerabilities, and best practices. Use when troubleshooting CI/CD failures or optimizing build times."
-
-**Poor description:**
-> "Helps with GitHub stuff"
-
-### Keep Skills Focused
-
-Each Skill should do one thing well:
-
-- ✅ Good: "Format Python code with black and check with ruff"
-- ❌ Too broad: "Handle all Python development tasks"
-
-### Test Your Skills
-
-Test by asking questions that match your description:
-
-- Verify the agent invokes the Skill at appropriate times
-- Ensure the instructions are clear and actionable
-- Check that supporting files are properly referenced
-
-### Document Thoroughly
-
-Include in SKILL.md:
-
-- Clear purpose and use cases
-- Step-by-step instructions
-- Examples of expected input/output
-- References to supporting files
-- Any prerequisites or dependencies
-
-## Using This Repository
-
-### As Project Skills
-
-To use these Skills in a specific project:
-
-1. Copy the `.claude/skills/` structure:
-
-   ```bash
-   mkdir -p .claude/skills
-   ```
-
-2. Copy desired Skill directories:
-
-   ```bash
-   cp -r /path/to/claude-skills/skill-name .claude/skills/
-   ```
-
-3. Commit to version control for team sharing
-
-### As Personal Skills
-
-To install Skills globally for all your projects:
-
-```bash
-cp -r skill-name ~/.claude/skills/
-```
-
-## Decision Record Skills
-
-This repository includes skills for creating decision documentation following the [Decision Records with AI Assistance](https://github.com/stephen-tatari/coding-agent-documentation) convention.
-
-### Workflow
-
-1. **Set up docs**: Run `/init-ai-docs` (local) or `/init-central-docs` (cross-project)
-2. **Start a feature**: Run `/create-plan` to document approach before coding
-3. **Technical decisions**: Run `/create-research` to capture ADRs
-4. **Session breaks**: Run `/create-handoff` to preserve context
-5. **Resume work**: Run `/resume-handoff` to continue from where you left off
-
-### Schema
-
-Documents follow a structured schema:
-
-- **Required**: `schema_version`, `date`, `type`, `status`, `topic`
-- **Accountability**: `author` (git user name), `ai_assisted`, `ai_model`
-- **Linking**: `related_prs`, `related_issue`, `superseded_by`
-- **Project**: `project`, `repo`
-- **Classification**: `tags`, `data_sensitivity`
-
-### Quality Bar
-
-Before committing decision documents:
-
-- Claims linked to sources
-- Assumptions explicitly listed
-- Alternatives considered (for plans/research)
-- PR review provides human accountability (no separate `reviewed_by` field needed)
-- No secrets or sensitive data
-
-## Reference
-
-For comprehensive documentation on Skills, see:
-
-- [Claude Code Skills Documentation](https://docs.claude.com/en/docs/claude-code/skills.md)
-- [Sub-agents Documentation](https://docs.claude.com/en/docs/claude-code/sub-agents.md)
-
-## Contributing
-
-When adding new Skills to this repository:
-
-1. Create a descriptive directory name
-2. Include a complete SKILL.md with proper frontmatter
-3. Add supporting files if needed
-4. Test the Skill with various prompts
-5. Document any dependencies or requirements
-6. Commit with clear commit messages
-
-## License
-
-This repository is licensed under the MIT License. See LICENSE file for details.
+## Available Skills
+
+| Category | Skills |
+|---|---|
+| Decision Records | `init-ai-docs`, `init-central-docs`, `create-plan`, `create-research`, `create-handoff`, `resume-handoff` |
+| DevOps & CI/CD | `tatari-turbolift`, `argocd-ops`, `pr-status`, `loki-debug` |
+| Code Analysis | `codex` |
+| Quality & Review | `convergent-review` |
+| Project Management | `jira` |
+
+## Adding a New Skill
+
+1. Create `{skill-name}/SKILL.md` with YAML frontmatter (`name`, `description`)
+2. `name` must match the directory name (lowercase, hyphens only)
+3. Add helper scripts in `{skill-name}/scripts/` if needed
+4. Update the "Available Skills" table in `README.md`
+
+See [README.md](./README.md) for the full creation guide and examples.
